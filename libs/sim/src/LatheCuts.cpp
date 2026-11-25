@@ -373,7 +373,10 @@ void clipMesh(DisplayMesh& mesh, const Field& keep, const Vec3& nearMin, const V
     auto vertex = [&](std::uint32_t i) {
         const auto& p = mesh.positions[i];
         const auto& n = mesh.normals[i];
-        return MeshVertex{Vec3(p[0], p[1], p[2]), Vec3(n[0], n[1], n[2]), mesh.colours[i]};
+        return MeshVertex{
+            Vec3(static_cast<double>(p[0]), static_cast<double>(p[1]), static_cast<double>(p[2])),
+            Vec3(static_cast<double>(n[0]), static_cast<double>(n[1]), static_cast<double>(n[2])),
+            mesh.colours[i]};
     };
     // Untouched triangles keep their vertices, shared as they were.
     std::vector<std::uint32_t> mapped(mesh.positions.size(),
@@ -397,7 +400,8 @@ void clipMesh(DisplayMesh& mesh, const Field& keep, const Vec3& nearMin, const V
                 std::min({mesh.positions[i0][ua], mesh.positions[i1][ua], mesh.positions[i2][ua]});
             const float hi =
                 std::max({mesh.positions[i0][ua], mesh.positions[i1][ua], mesh.positions[i2][ua]});
-            touches = hi >= nearMin[axis] && lo <= nearMax[axis];
+            touches = static_cast<double>(hi) >= nearMin[axis] &&
+                      static_cast<double>(lo) <= nearMax[axis];
         }
         if (!touches) {
             keepVertex(i0);
@@ -564,14 +568,21 @@ void threadStrip(const std::vector<const ThreadGroup*>& users, const Vec2& p, co
         for (std::size_t j = 0; j < ns; ++j) {
             const std::uint32_t v = first + 2u * static_cast<std::uint32_t>(j);
             // Facing out, whichever way the edge and the rows run.
-            const Vec3 a(mesh.positions[v][0], mesh.positions[v][1], mesh.positions[v][2]);
-            const Vec3 b(mesh.positions[v + 1][0], mesh.positions[v + 1][1],
-                         mesh.positions[v + 1][2]);
-            const Vec3 c(mesh.positions[v + 3][0], mesh.positions[v + 3][1],
-                         mesh.positions[v + 3][2]);
-            const Vec3 e(mesh.positions[v + 2][0], mesh.positions[v + 2][1],
-                         mesh.positions[v + 2][2]);
-            const Vec3 n(mesh.normals[v][0], mesh.normals[v][1], mesh.normals[v][2]);
+            const Vec3 a(static_cast<double>(mesh.positions[v][0]),
+                         static_cast<double>(mesh.positions[v][1]),
+                         static_cast<double>(mesh.positions[v][2]));
+            const Vec3 b(static_cast<double>(mesh.positions[v + 1][0]),
+                         static_cast<double>(mesh.positions[v + 1][1]),
+                         static_cast<double>(mesh.positions[v + 1][2]));
+            const Vec3 c(static_cast<double>(mesh.positions[v + 3][0]),
+                         static_cast<double>(mesh.positions[v + 3][1]),
+                         static_cast<double>(mesh.positions[v + 3][2]));
+            const Vec3 e(static_cast<double>(mesh.positions[v + 2][0]),
+                         static_cast<double>(mesh.positions[v + 2][1]),
+                         static_cast<double>(mesh.positions[v + 2][2]));
+            const Vec3 n(static_cast<double>(mesh.normals[v][0]),
+                         static_cast<double>(mesh.normals[v][1]),
+                         static_cast<double>(mesh.normals[v][2]));
             const bool flip = (b - a).cross(c - a).dot(n) + (c - a).cross(e - a).dot(n) < 0.0;
             if (flip) {
                 for (const std::uint32_t t : {v, v + 3, v + 1, v, v + 2, v + 3}) {

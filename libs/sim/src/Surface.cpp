@@ -610,7 +610,9 @@ Stock resampleStock(const Stock& source, const Transform3& sourceToTarget, const
     geom3d::Mesh mesh;
     mesh.vertices.reserve(surface.positions.size());
     for (const auto& p : surface.positions) {
-        mesh.vertices.push_back(sourceToTarget * Vec3(p[0], p[1], p[2]));
+        mesh.vertices.push_back(sourceToTarget * Vec3(static_cast<double>(p[0]),
+                                                      static_cast<double>(p[1]),
+                                                      static_cast<double>(p[2])));
     }
     mesh.triangles.reserve(surface.triangleCount());
     for (std::size_t t = 0; t + 2 < surface.indices.size(); t += 3) {
