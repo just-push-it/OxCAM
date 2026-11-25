@@ -1944,7 +1944,7 @@ void MachineLibraryDialog::addPartRow(const machine::ModelPart& p) {
             for (const int r : rows) {
                 if (auto* other = qobject_cast<QComboBox*>(parts_->cellWidget(r, kPartCarrier));
                     other && other != carrier) {
-                    const QSignalBlocker block(other);
+                    const QSignalBlocker blockOther(other);
                     other->setCurrentIndex(std::max(0, other->findData(value)));
                 }
             }
@@ -1973,7 +1973,7 @@ void MachineLibraryDialog::addPartRow(const machine::ModelPart& p) {
             if (inSelection) {
                 for (const int r : rows) {
                     if (QCheckBox* other = checkIn(parts_, r, col); other && other != box) {
-                        const QSignalBlocker block(other);
+                        const QSignalBlocker blockOther(other);
                         other->setChecked(on);
                     }
                 }

@@ -130,9 +130,9 @@ ToolLibrariesDialog::ToolLibrariesDialog(EditFn edit, QWidget* parent)
             reload();
         }
     });
-    connect(list_, &QListWidget::currentRowChanged, this, [this](int row) {
+    connect(list_, &QListWidget::currentRowChanged, this, [this](int listRow) {
         for (QPushButton* b : {editButton_, renameButton_, defaultButton_, removeButton_}) {
-            b->setEnabled(row >= 0);
+            b->setEnabled(listRow >= 0);
         }
     });
     reload();

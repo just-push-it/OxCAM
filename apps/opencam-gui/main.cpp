@@ -2854,9 +2854,10 @@ int main(int argc, char** argv) {
                             return label ? label->text().toStdString() : std::string("(none)");
                         };
                         int failed = 0;
-                        const auto check = [&](const char* what, bool ok) {
-                            std::printf("%s: %s | %s\n", what, ok ? "ok" : "WRONG", note().c_str());
-                            failed += ok ? 0 : 1;
+                        const auto check = [&](const char* what, bool passed) {
+                            std::printf("%s: %s | %s\n", what, passed ? "ok" : "WRONG",
+                                        note().c_str());
+                            failed += passed ? 0 : 1;
                         };
                         const auto entry = [&](const QString& text) {
                             const bool found = dialog->chooseJaws(text);
@@ -2986,9 +2987,9 @@ int main(int argc, char** argv) {
                                 !window.findChild<ocam::gui::LengthSpinBox*>(
                                     QStringLiteral("setupJawStopOffset")));
                         if (parser.isSet(screenshotWindow)) {
-                            QString panel = parser.value(screenshotWindow);
-                            panel.insert(panel.lastIndexOf(QLatin1Char('.')),
-                                         QStringLiteral("_panel"));
+                            QString panelPath = parser.value(screenshotWindow);
+                            panelPath.insert(panelPath.lastIndexOf(QLatin1Char('.')),
+                                             QStringLiteral("_panel"));
                             for (int i = 0; i < 50; ++i) {
                                 QApplication::processEvents();
                                 QThread::msleep(10);
@@ -3003,7 +3004,7 @@ int main(int argc, char** argv) {
                                 }
                                 QApplication::processEvents();
                             }
-                            window.grab().save(panel);
+                            window.grab().save(panelPath);
                         }
 
                         // A set no setup uses leaves the project: the soft one is put back.
@@ -3089,31 +3090,31 @@ int main(int argc, char** argv) {
                             }
                         };
                         int failed = 0;
-                        const auto check = [&](const char* what, bool ok) {
-                            std::printf("%s: %s\n", what, ok ? "ok" : "WRONG");
+                        const auto check = [&](const char* what, bool passed) {
+                            std::printf("%s: %s\n", what, passed ? "ok" : "WRONG");
                             std::fflush(stdout);
-                            failed += ok ? 0 : 1;
+                            failed += passed ? 0 : 1;
                         };
                         // Does `act` to the dialog of that class once the list has opened it
                         // (modal: it opens in an event loop of its own).
                         const auto onOpen = [&app](const char* className,
                                                    std::function<void(QDialog*)> act) {
-                            auto* poll = new QTimer(&app);
+                            auto* watch = new QTimer(&app);
                             auto tries = std::make_shared<int>(0);
                             QObject::connect(
-                                poll, &QTimer::timeout, &app, [poll, tries, className, act] {
+                                watch, &QTimer::timeout, &app, [watch, tries, className, act] {
                                     auto* d =
                                         qobject_cast<QDialog*>(QApplication::activeModalWidget());
                                     if (d && d->inherits(className)) {
-                                        poll->stop();
-                                        poll->deleteLater();
+                                        watch->stop();
+                                        watch->deleteLater();
                                         act(d);
                                     } else if (++*tries > 500) {
-                                        poll->stop();
-                                        poll->deleteLater();
+                                        watch->stop();
+                                        watch->deleteLater();
                                     }
                                 });
-                            poll->start(20);
+                            watch->start(20);
                         };
                         const auto machineList = [&] {
                             return window.findChild<QComboBox*>(QStringLiteral("setupMachine"));
@@ -3194,8 +3195,8 @@ int main(int argc, char** argv) {
                             };
                             // The page built again from the project, as after any change.
                             const auto rebuild = [&] {
-                                if (auto* panel = window.findChild<ocam::gui::PropertyPanel*>()) {
-                                    panel->showSelection(
+                                if (auto* props = window.findChild<ocam::gui::PropertyPanel*>()) {
+                                    props->showSelection(
                                         {ocam::gui::Selection::Kind::Setup, setup().id});
                                 }
                                 settle();
@@ -3414,10 +3415,10 @@ int main(int argc, char** argv) {
                         };
                         settle();
                         int failed = 0;
-                        const auto check = [&](const char* what, bool ok) {
-                            std::printf("%s: %s\n", what, ok ? "ok" : "WRONG");
+                        const auto check = [&](const char* what, bool passed) {
+                            std::printf("%s: %s\n", what, passed ? "ok" : "WRONG");
                             std::fflush(stdout);
-                            failed += ok ? 0 : 1;
+                            failed += passed ? 0 : 1;
                         };
                         auto* turret = window.findChild<ocam::gui::TurretWindow*>();
                         check("the turret window waits to be asked for",
@@ -3447,7 +3448,7 @@ int main(int argc, char** argv) {
                             return;
                         }
                         auto* preview = turret->preview();
-                        auto* panel = turret->panel();
+                        auto* turretPanel = turret->panel();
                         const auto has = [](const std::vector<std::string>& names,
                                             const std::string& start) {
                             return std::any_of(
@@ -3549,7 +3550,7 @@ int main(int argc, char** argv) {
                         }
                         settle();
                         check("a station chosen in the preview marks its row",
-                              panel->turretStation() == first && row(first) &&
+                              turretPanel->turretStation() == first && row(first) &&
                                   row(first)->isChecked() && !row(second)->isChecked());
                         // At home: the axes at zero, the turret still on the station.
                         preview->setAtWork(false);
@@ -3788,10 +3789,10 @@ int main(int argc, char** argv) {
                             return chooseInPopup(box, text);
                         };
                         int failed = 0;
-                        const auto check = [&](const char* what, bool ok) {
-                            std::printf("%s: %s\n", what, ok ? "ok" : "WRONG");
+                        const auto check = [&](const char* what, bool passed) {
+                            std::printf("%s: %s\n", what, passed ? "ok" : "WRONG");
                             std::fflush(stdout);
-                            failed += ok ? 0 : 1;
+                            failed += passed ? 0 : 1;
                         };
                         std::printf("station 1 blocks: %s\nstation 1 tools: %s\n",
                                     items(list("Block", 1)).toUtf8().constData(),
