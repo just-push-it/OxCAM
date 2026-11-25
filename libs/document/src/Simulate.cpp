@@ -86,9 +86,15 @@ std::vector<sim::IntervalList> moveChamfered(const SetupSimulation& source,
         const double x = from.u0() + (i + 0.5) * hs;
         const double y = from.v0() + (j + 0.5) * hs;
         for (const sim::Interval& in : list) {
-            const int n = std::max(1, static_cast<int>(std::ceil((in.hi - in.lo) / step)));
+            const int n =
+                std::max(1, static_cast<int>(std::ceil(
+                                (static_cast<double>(in.hi) - static_cast<double>(in.lo)) / step)));
             for (int k = 0; k <= n; ++k) {
-                const Vec3 p = sourceToTarget * Vec3(x, y, in.lo + (in.hi - in.lo) * k / n);
+                const Vec3 p =
+                    sourceToTarget *
+                    Vec3(x, y,
+                         static_cast<double>(in.lo) +
+                             (static_cast<double>(in.hi) - static_cast<double>(in.lo)) * k / n);
                 const double fu = (p.x() - target.u0()) / h - 0.5;
                 const double fv = (p.y() - target.v0()) / h - 0.5;
                 for (int tj = static_cast<int>(std::ceil(fv - 1.0));
@@ -178,7 +184,8 @@ std::vector<sim::IntervalList> chamferedMaterial(const Document& doc, const Setu
                             continue;
                         }
                         for (const sim::Interval& in : now) {
-                            sim::subtract(removed, in.lo, in.hi);
+                            sim::subtract(removed, static_cast<double>(in.lo),
+                                          static_cast<double>(in.hi));
                         }
                         const Vec2 p(grid.u0() + (i + 0.5) * grid.spacing(),
                                      grid.v0() + (j + 0.5) * grid.spacing());
@@ -214,7 +221,8 @@ void compareFinal(const SimulationOptions& options, SetupSimulation& out) {
     if (out.chamfered.size() == prepared->eroded.size()) {
         for (std::size_t idx = 0; idx < out.chamfered.size(); ++idx) {
             for (const sim::Interval& in : out.chamfered[idx]) {
-                sim::subtract(prepared->eroded[idx], in.lo, in.hi);
+                sim::subtract(prepared->eroded[idx], static_cast<double>(in.lo),
+                              static_cast<double>(in.hi));
             }
         }
     }
