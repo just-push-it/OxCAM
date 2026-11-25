@@ -893,14 +893,14 @@ void WorkholdingSetupDialog::fillPlacement() {
             form->addRow(tr("Bore"), fromStock);
             const auto boreField = [&](const QString& label, const QString& tip, double value,
                                        const char* name, double lo,
-                                       std::function<void(document::SoftBore&, double)> set) {
+                                       std::function<void(document::SoftBore&, double)> apply) {
                 auto* box = new LengthSpinBox(value, unit_, lo);
                 box->setObjectName(QString::fromLatin1(name));
                 box->setToolTip(tip);
                 connect(box, &LengthSpinBox::mmChanged, this, [this, set](double v) {
                     place("Change soft jaw bore", [&](SetupWorkholding& h) {
                         document::SoftBore b = h.softBore.value_or(document::SoftBore{});
-                        set(b, v);
+                        apply(b, v);
                         h.softBore = b;
                     });
                 });

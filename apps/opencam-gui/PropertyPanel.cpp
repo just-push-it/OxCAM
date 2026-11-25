@@ -870,9 +870,9 @@ void PropertyPanel::buildSetup(const Setup& setup) {
                         return;
                     }
                     const machine::Machine chosen = *it;
-                    commit("Use machine " + chosen.name, [&](document::Project& project) {
-                        project.machines.push_back(chosen);
-                        if (Setup* s = project.findSetup(setupId)) {
+                    commit("Use machine " + chosen.name, [&](document::Project& edited) {
+                        edited.machines.push_back(chosen);
+                        if (Setup* s = edited.findSetup(setupId)) {
                             s->machine = chosen.id;
                         }
                     });
@@ -914,8 +914,8 @@ void PropertyPanel::buildSetup(const Setup& setup) {
         form->addRow(QString(), hint);
         connect(update, &QPushButton::clicked, this, [this, chosen = *newer] {
             commit("Update machine " + chosen.name + " from the library",
-                   [&](document::Project& project) {
-                       for (machine::Machine& m : project.machines) {
+                   [&](document::Project& edited) {
+                       for (machine::Machine& m : edited.machines) {
                            if (m.id == chosen.id) {
                                m = chosen;
                            }

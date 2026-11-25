@@ -1103,7 +1103,8 @@ void WorkholdingWizard::updateView() {
             const cad::DatumGeometry& g = known->second;
             const Transform3 at = moved(memberOf(*part));
             const Vec3 p = at * g.point;
-            for (const Vec3& axis : {Vec3::UnitX(), Vec3::UnitY(), Vec3::UnitZ()}) {
+            const Vec3 axes[] = {Vec3::UnitX(), Vec3::UnitY(), Vec3::UnitZ()};
+            for (const Vec3& axis : axes) {
                 scene.lines.push_back({p - 4.0 * axis, p + 4.0 * axis, false, kDatum});
             }
             if (!g.direction.isZero()) {
