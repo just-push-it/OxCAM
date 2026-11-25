@@ -658,7 +658,7 @@ ClearingReport clearLevel(toolpath::PathBuilder& b, const LevelClearing& in, con
         const Regions touch = geom2d::offset(working, r + 2.0 * cell, clip);
         std::vector<std::vector<Vec2>> loops;
         const auto loopsOf = [&](const Regions& source) {
-            std::vector<std::vector<Vec2>> loops;
+            std::vector<std::vector<Vec2>> found;
             for (const Region& region : source) {
                 std::vector<const Polyline*> boundary{&region.outer};
                 for (const Polyline& hole : region.holes) {
@@ -675,10 +675,10 @@ ClearingReport clearLevel(toolpath::PathBuilder& b, const LevelClearing& in, con
                     if (in.climb) {
                         std::reverse(pts.begin(), pts.end());
                     }
-                    loops.push_back(std::move(pts));
+                    found.push_back(std::move(pts));
                 }
             }
-            return loops;
+            return found;
         };
         const Regions inside = geom2d::offset(whole, 2.0 * tol, clip);
         std::vector<std::vector<Vec2>> pieces =
@@ -839,7 +839,7 @@ ClearingReport clearLevel(toolpath::PathBuilder& b, const LevelClearing& in, con
             // a window (never backwards, so a closed loop's end is not mistaken for its start).
             double lateral = 0.0; // distance from the tool to the pass, set by project()
             const auto project = [&](const Vec2& a, std::size_t& seg) {
-                double best = std::numeric_limits<double>::infinity();
+                double bestDist = std::numeric_limits<double>::infinity();
                 double at = cum[seg];
                 std::size_t bestSeg = seg;
                 for (std::size_t k = seg; k + 1 < nominal.size() && cum[k] <= cum[seg] + 3.0 * ae;
@@ -849,14 +849,14 @@ ClearingReport clearLevel(toolpath::PathBuilder& b, const LevelClearing& in, con
                     const double u =
                         len2 > 1e-18 ? std::clamp((a - nominal[k]).dot(ab) / len2, 0.0, 1.0) : 0.0;
                     const double d = (nominal[k] + u * ab - a).squaredNorm();
-                    if (d < best) {
-                        best = d;
+                    if (d < bestDist) {
+                        bestDist = d;
                         at = cum[k] + u * std::sqrt(len2);
                         bestSeg = k;
                     }
                 }
                 seg = bestSeg;
-                lateral = std::sqrt(best);
+                lateral = std::sqrt(bestDist);
                 return at;
             };
             // The point of the pass at arc length `at` (from segment `from` on).
@@ -1047,9 +1047,9 @@ ClearingReport clearLevel(toolpath::PathBuilder& b, const LevelClearing& in, con
                 if (t.actual.size() >= 2) {
                     // The way to the material (the lead-in) is shown and posted as such.
                     if (t.firstCut >= 2 && t.firstCut + 1 < t.actual.size()) {
-                        const std::vector<Vec2> lead(t.actual.begin(),
-                                                     t.actual.begin() + t.firstCut + 1);
-                        b.follow(geom2d::fitArcs(lead, false, 2.0 * tol), z, FeedClass::LeadIn,
+                        const std::vector<Vec2> leadIn(t.actual.begin(),
+                                                       t.actual.begin() + t.firstCut + 1);
+                        b.follow(geom2d::fitArcs(leadIn, false, 2.0 * tol), z, FeedClass::LeadIn,
                                  ctx.feeds.lead);
                         const std::vector<Vec2> rest(t.actual.begin() + t.firstCut, t.actual.end());
                         b.follow(geom2d::fitArcs(rest, false, 2.0 * tol), z, FeedClass::Cut,
