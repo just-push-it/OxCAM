@@ -37,7 +37,7 @@ jobs:
           - { os: ubuntu-24.04, preset: ci-linux-gcc-gui, triplet: x64-linux, test-wrapper: xvfb-run -a }
           - { os: macos-15, preset: ci-macos-clang-gui, triplet: arm64-osx }
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install build tools (Linux)
         if: runner.os == 'Linux'
@@ -55,13 +55,30 @@ jobs:
         if: runner.os == 'macOS'
         run: brew install ninja
 
+      # VsDevCmd is what ilammy/msvc-dev-cmd ran. That action is still Node 20 and has
+      # no Node 24 release, so the developer environment is imported here instead.
+      # It also exports Visual Studio's own VCPKG_ROOT; the next step puts back the
+      # clone this workflow bootstraps, or git clone targets the VS tree and fails.
       - name: Set up MSVC environment
         if: runner.os == 'Windows'
-        uses: ilammy/msvc-dev-cmd@v1
-
-      # vcvarsall, which msvc-dev-cmd runs, exports Visual Studio's own VCPKG_ROOT
-      # and that replaces the job env for every later step. Point it back at the
-      # clone this workflow bootstraps, or git clone targets the VS tree and fails.
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          $install = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath | Select-Object -First 1
+          if (-not $install) { throw 'Visual Studio with the VC toolset was not found' }
+          $devcmd = Join-Path $install 'Common7\Tools\VsDevCmd.bat'
+          $lines = & cmd.exe /d /c "`"$devcmd`" -no_logo -arch=x64 -host_arch=x64 >nul 2>&1 && set"
+          if ($LASTEXITCODE -ne 0) { throw "VsDevCmd.bat failed with exit code $LASTEXITCODE" }
+          $delim = 'OXCAM_ENV_EOF'
+          foreach ($line in $lines) {
+            $line = $line -replace "`r$", ''
+            if ($line -notmatch '^([A-Za-z_][A-Za-z0-9_]*)=(.*)$') { continue }
+            $name = $Matches[1]
+            $value = $Matches[2]
+            if ($name -like 'GITHUB_*' -or $value.Contains($delim)) { continue }
+            [System.IO.File]::AppendAllText($env:GITHUB_ENV, "$name<<$delim`n$value`n$delim`n")
+          }
       - name: Restore vcpkg root after MSVC setup
         if: runner.os == 'Windows'
         shell: bash
@@ -84,7 +101,7 @@ jobs:
           fi
 
       - name: Restore vcpkg binary cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
           key: vcpkg-${{ matrix.triplet }}-${{ matrix.preset }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}
@@ -94,7 +111,7 @@ jobs:
 
       - name: Set up Python for the bindings
         if: matrix.python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
@@ -119,7 +136,7 @@ jobs:
 
       - name: Upload vcpkg logs on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: vcpkg-logs-${{ matrix.preset }}
           path: |
@@ -131,7 +148,7 @@ jobs:
     name: lint (format, REUSE, DCO)
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -142,7 +159,7 @@ jobs:
           clang-format-18 --dry-run --Werror $files
 
       - name: REUSE compliance
-        uses: fsfe/reuse-action@v5
+        uses: fsfe/reuse-action@v6
 
       - name: DCO sign-off
         if: github.event_name == 'pull_request'
