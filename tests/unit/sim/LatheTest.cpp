@@ -28,6 +28,31 @@ Regions rect(double z0, double z1, double r0, double r1) {
     return {{Polyline::rectangle(Vec2(z0, r0), Vec2(z1, r1)), {}}};
 }
 
+double meshCoord(float value) {
+    return static_cast<double>(value);
+}
+
+double meshVolume(const DisplayMesh& mesh) {
+    double sum = 0.0;
+    for (std::size_t t = 0; t + 2 < mesh.indices.size(); t += 3) {
+        const auto& a = mesh.positions[mesh.indices[t]];
+        const auto& b = mesh.positions[mesh.indices[t + 1]];
+        const auto& c = mesh.positions[mesh.indices[t + 2]];
+        const double ax = meshCoord(a[0]);
+        const double ay = meshCoord(a[1]);
+        const double az = meshCoord(a[2]);
+        const double bx = meshCoord(b[0]);
+        const double by = meshCoord(b[1]);
+        const double bz = meshCoord(b[2]);
+        const double cx = meshCoord(c[0]);
+        const double cy = meshCoord(c[1]);
+        const double cz = meshCoord(c[2]);
+        sum +=
+            (ax * (by * cz - bz * cy) + ay * (bz * cx - bx * cz) + az * (bx * cy - by * cx)) / 6.0;
+    }
+    return sum;
+}
+
 /// Stepped shaft: radius 10 for z in [-30, 0], radius 15 for z in [-80, -30].
 Regions steppedShaft() {
     return geom2d::unite(rect(-30, 0, 0, 10), rect(-80, -30, 0, 15));
@@ -330,20 +355,6 @@ TEST_CASE("a thread cut beside the profile", "[sim][lathe]") {
     const auto mesh = [](const LatheStock& s) {
         return latheStockMesh(s, 0.005, {}, {});
     };
-    const auto meshVolume = [](const DisplayMesh& m) {
-        double sum = 0.0;
-        for (std::size_t t = 0; t + 2 < m.indices.size(); t += 3) {
-            const auto& a = m.positions[m.indices[t]];
-            const auto& b = m.positions[m.indices[t + 1]];
-            const auto& c = m.positions[m.indices[t + 2]];
-            sum += (static_cast<double>(a[0]) * (b[1] * c[2] - b[2] * c[1]) +
-                    static_cast<double>(a[1]) * (b[2] * c[0] - b[0] * c[2]) +
-                    static_cast<double>(a[2]) * (b[0] * c[1] - b[1] * c[0])) /
-                   6.0;
-        }
-        return sum;
-    };
-
     LatheStock cut = bar;
     pass(cut, -5.0, -30.0);
     SECTION("the profile stays, the volume goes") {
@@ -365,8 +376,8 @@ TEST_CASE("a thread cut beside the profile", "[sim][lathe]") {
         CHECK(meshVolume(m) == Approx(cut.volume()).epsilon(0.003));
         double lowest = 1e9, highest = 0.0;
         for (const auto& v : m.positions) {
-            if (v[2] < -1.0 && v[2] > -39.0) {
-                const double r = std::hypot(v[0], v[1]);
+            if (v[2] < -1.0f && v[2] > -39.0f) {
+                const double r = std::hypot(meshCoord(v[0]), meshCoord(v[1]));
                 lowest = std::min(lowest, r);
                 highest = std::max(highest, r);
             }
@@ -381,10 +392,10 @@ TEST_CASE("a thread cut beside the profile", "[sim][lathe]") {
         const DisplayMesh m = mesh(cut);
         int checked = 0;
         for (const auto& v : m.positions) {
-            const double r = std::hypot(v[0], v[1]);
-            if (r < tip + 1e-3 && v[2] < -8.0 && v[2] > -27.0) {
-                const double angle = std::atan2(v[1], v[0]);
-                const double s = (v[2] - lead * angle / (2.0 * kPi) + 5.0) / lead;
+            const double r = std::hypot(meshCoord(v[0]), meshCoord(v[1]));
+            if (r < tip + 1e-3 && v[2] < -8.0f && v[2] > -27.0f) {
+                const double angle = std::atan2(meshCoord(v[1]), meshCoord(v[0]));
+                const double s = (meshCoord(v[2]) - lead * angle / (2.0 * kPi) + 5.0) / lead;
                 CHECK(std::abs(s - std::round(s)) * lead < 0.3);
                 ++checked;
             }
@@ -427,8 +438,8 @@ TEST_CASE("a thread cut beside the profile", "[sim][lathe]") {
         const DisplayMesh m = mesh(f);
         double lowest = 1e9;
         for (const auto& v : m.positions) {
-            if (v[2] < -6.0 && v[2] > -29.0) {
-                lowest = std::min(lowest, std::hypot(static_cast<double>(v[0]), v[1]));
+            if (v[2] < -6.0f && v[2] > -29.0f) {
+                lowest = std::min(lowest, std::hypot(meshCoord(v[0]), meshCoord(v[1])));
             }
         }
         CHECK(lowest >= radius - fineDepth - 1e-3);
@@ -444,7 +455,7 @@ TEST_CASE("a thread cut beside the profile", "[sim][lathe]") {
         CHECK(meshVolume(m) == Approx(tube.volume()).epsilon(0.003));
         double widest = 0.0;
         for (const auto& v : m.positions) {
-            const double r = std::hypot(static_cast<double>(v[0]), v[1]);
+            const double r = std::hypot(meshCoord(v[0]), meshCoord(v[1]));
             if (r < 12.0) {
                 widest = std::max(widest, r);
             }
@@ -474,19 +485,6 @@ TEST_CASE("a thread cut beside the profile", "[sim][lathe]") {
 TEST_CASE("a hole beside the profile", "[sim][lathe]") {
     const double radius = 15.0;
     const LatheStock bar = LatheStock::cylinder(-40, 0, radius);
-    const auto meshVolume = [](const DisplayMesh& m) {
-        double sum = 0.0;
-        for (std::size_t t = 0; t + 2 < m.indices.size(); t += 3) {
-            const auto& a = m.positions[m.indices[t]];
-            const auto& b = m.positions[m.indices[t + 1]];
-            const auto& c = m.positions[m.indices[t + 2]];
-            sum += (static_cast<double>(a[0]) * (b[1] * c[2] - b[2] * c[1]) +
-                    static_cast<double>(a[1]) * (b[2] * c[0] - b[0] * c[2]) +
-                    static_cast<double>(a[2]) * (b[0] * c[1] - b[1] * c[0])) /
-                   6.0;
-        }
-        return sum;
-    };
     const std::vector<Vec2> flat{{0.0, 3.0}, {100.0, 3.0}};
     SECTION("a blind hole in the front face, off the axis") {
         LatheStock s = bar;
