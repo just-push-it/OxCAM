@@ -22,6 +22,8 @@ jobs:
     env:
       # Tests run in parallel, one per core of the hosted runners.
       CTEST_PARALLEL_LEVEL: 4
+      VCPKG_ROOT: ${{ github.workspace }}/../vcpkg
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/../vcpkg-cache
     strategy:
       fail-fast: false
       matrix:
@@ -34,9 +36,6 @@ jobs:
           - { os: windows-2022, preset: ci-msvc-gui, triplet: x64-windows }
           - { os: ubuntu-24.04, preset: ci-linux-gcc-gui, triplet: x64-linux, test-wrapper: xvfb-run -a }
           - { os: macos-14, preset: ci-macos-clang-gui, triplet: arm64-osx }
-    env:
-      VCPKG_ROOT: ${{ github.workspace }}/../vcpkg
-      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/../vcpkg-cache
     steps:
       - uses: actions/checkout@v4
 
