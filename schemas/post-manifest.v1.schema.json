@@ -1,0 +1,98 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://oxcam.invalid/schemas/post-manifest.v1.schema.json",
+  "title": "OxCAM post processor exports, engine version 1",
+  "description": "The 'manifest' and 'options' exports of a JavaScript post processor (DL-0039). Angles in degrees, lengths in mm. Declarations change what OxCAM sends the post: arcs in planes not listed, helical arcs when 'helical' is false, and arcs longer than 'maxSweep' are split or become lines within 'tolerance'; cycle types not listed are expanded into moves; 'multiAxis' chooses tool centre point control ('tcp') or machine positions with inverse-time feeds ('machine').",
+  "type": "object",
+  "required": ["manifest", "options"],
+  "properties": {
+    "manifest": {
+      "type": "object",
+      "required": ["id", "name", "version", "engine", "machines"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$" },
+        "name": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "pattern": "^[0-9]+(\\.[0-9]+)*([-+][0-9A-Za-z.-]+)?$" },
+        "engine": { "type": "integer", "minimum": 1 },
+        "machines": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": ["mill3", "mill4_a", "mill5_table_ac", "mill5_table_bc",
+                     "mill5_head_table_bc", "mill5_head_bc", "lathe2"]
+          }
+        },
+        "extension": { "type": "string", "pattern": "^[A-Za-z0-9]{1,8}$" },
+        "arcs": {
+          "type": "object",
+          "properties": {
+            "maxSweep": { "type": "number", "exclusiveMinimum": 0, "maximum": 360 },
+            "planes": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": { "enum": ["xy", "zx", "yz"] }
+            },
+            "helical": { "type": "boolean" }
+          },
+          "additionalProperties": false
+        },
+        "tolerance": { "type": "number", "exclusiveMinimum": 0 },
+        "cycles": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "enum": ["drill", "dwell", "peck", "chip_break", "tap", "tap_left", "bore", "back_bore"] }
+        },
+        "multiAxis": { "enum": ["tcp", "machine"] },
+        "verify": { "enum": ["fanuc-mill", "fanuc-lathe", null] },
+        "encoding": { "enum": ["ascii"] },
+        "subSpindle": {
+          "description": "The post writes a sub-spindle's work and the transfer to it (ADR-0007): the NC program's sub_axis and spindle_sync, and chuck and spindle for the sub-spindle.",
+          "type": "boolean"
+        },
+        "workOffsets": {
+          "description": "The work offsets the control has: numbers 'from' to 'to' (1 = the first) are written as 'code' with {} replaced by 'start' + (n - from). Without it: G54-G59 (1-6) and G54.1 P1-P48 (7-54).",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["from", "to", "code"],
+            "properties": {
+              "from": { "type": "integer", "minimum": 1 },
+              "to": { "type": "integer", "minimum": 1 },
+              "code": { "type": "string", "pattern": "^[^{}]*\\{\\}[^{}]*$" },
+              "start": { "type": "integer", "minimum": 0 },
+              "name": { "type": "string", "minLength": 1, "maxLength": 40 }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "options": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "label", "type", "default"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$" },
+          "label": { "type": "string", "minLength": 1 },
+          "type": { "enum": ["bool", "number", "choice", "text"] },
+          "default": {},
+          "scope": { "enum": ["program", "operation"] },
+          "choices": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": { "type": "string" }
+          },
+          "min": { "type": "number" },
+          "max": { "type": "number" }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

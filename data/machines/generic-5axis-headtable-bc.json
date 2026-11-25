@@ -1,0 +1,28 @@
+{
+  "format": "oxcam.machine",
+  "version": 3,
+  "id": "generic-5axis-headtable-bc",
+  "name": "Generic 5-axis head-table machining centre (B head, C rotary table)",
+  "vendor": "",
+  "kinematics": "mill5_head_table_bc",
+  "axes": [
+    { "name": "X", "min": -400, "max": 400, "max_rate": 30000 },
+    { "name": "Y", "min": -300, "max": 300, "max_rate": 30000 },
+    { "name": "Z", "min": -450, "max": 50, "max_rate": 24000 },
+    { "name": "B", "min": -110, "max": 110, "max_rate": 12000 },
+    { "name": "C", "min": -9999, "max": 9999, "max_rate": 30000 }
+  ],
+  "spindle": { "min_rpm": 100, "max_rpm": 18000 },
+  "feed": { "max": 10000, "rapid": 30000 },
+  "tool_changer": { "capacity": 40, "change_time": 6 },
+  "work_offsets": 54,
+  "pivot_length": 150,
+  "components": [
+    { "name": "spindle nose", "attach": "head",
+      "cylinder": { "base": [0, 0, 0], "axis": [0, 0, 1], "radius": 45, "length": 110 } },
+    { "name": "B-axis head", "attach": "head",
+      "box": { "min": [-100, -130, 110], "max": [100, 130, 330] } },
+    { "name": "rotary table", "attach": "table",
+      "cylinder": { "base": [0, 0, -40], "axis": [0, 0, 1], "radius": 200, "length": 40 } }
+  ]
+}

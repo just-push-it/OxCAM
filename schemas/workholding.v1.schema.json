@@ -1,0 +1,60 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://oxcam.invalid/schemas/workholding.v1.schema.json",
+  "title": "OxCAM workholding template (workholding.json inside a .ocamhold archive), version 1",
+  "description": "A vise made of bodies (STEP files stored beside this document as bodies/<sha256>.step, or among a project's models) in shared template coordinates, in millimetres. The datum frame has its origin on the fixed jaw's clamping face (vise) or midway between the jaw faces (self-centring), at the jaw tops and centred across the jaws; its X axis is the direction the jaw opens in and its Z axis points up out of the jaws. Bodies with the role 'jaw' move along datum +X as the jaws open, 'opposite_jaw' along -X (self-centring vises, half the change each); the opening of the bodies as stored is 'modelled_opening'. See docs/design-log/0035-workholding-templates.md.",
+  "type": "object",
+  "required": ["format", "version", "id", "name", "kind", "datum", "modelled_opening",
+               "min_opening", "max_opening", "bodies"],
+  "properties": {
+    "format": { "const": "oxcam.workholding" },
+    "version": { "const": 1 },
+    "units": { "const": "mm" },
+    "id": { "$ref": "#/definitions/uuid" },
+    "name": { "type": "string", "minLength": 1 },
+    "description": { "type": "string" },
+    "kind": { "enum": ["vise", "self_centring"] },
+    "datum": {
+      "type": "object",
+      "required": ["origin", "x_axis", "z_axis"],
+      "properties": {
+        "origin": { "$ref": "#/definitions/vec3" },
+        "x_axis": { "$ref": "#/definitions/vec3" },
+        "z_axis": { "$ref": "#/definitions/vec3" }
+      },
+      "additionalProperties": false
+    },
+    "modelled_opening": { "type": "number", "minimum": 0 },
+    "min_opening": { "type": "number", "minimum": 0 },
+    "max_opening": { "type": "number", "exclusiveMinimum": 0 },
+    "bodies": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "sha256", "role"],
+        "properties": {
+          "id": { "$ref": "#/definitions/uuid" },
+          "name": { "type": "string" },
+          "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "source_path": { "type": "string" },
+          "role": { "enum": ["base", "fixed_jaw", "jaw", "opposite_jaw"] }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+    },
+    "vec3": {
+      "type": "array",
+      "items": { "type": "number" },
+      "minItems": 3,
+      "maxItems": 3
+    }
+  }
+}

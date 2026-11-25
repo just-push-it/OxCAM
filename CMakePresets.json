@@ -1,0 +1,188 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": { "major": 3, "minor": 25, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "headless",
+      "hidden": true,
+      "cacheVariables": {
+        "OCAM_BUILD_TESTS": "ON",
+        "OCAM_BUILD_GUI": "OFF",
+        "VCPKG_MANIFEST_FEATURES": "tests"
+      }
+    },
+    {
+      "name": "gui",
+      "hidden": true,
+      "cacheVariables": {
+        "OCAM_BUILD_TESTS": "ON",
+        "OCAM_BUILD_GUI": "ON",
+        "VCPKG_MANIFEST_FEATURES": "tests;gui"
+      }
+    },
+    {
+      "name": "release",
+      "hidden": true,
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "RelWithDebInfo" }
+    },
+    {
+      "name": "ci",
+      "hidden": true,
+      "cacheVariables": {
+        "OCAM_WARNINGS_AS_ERRORS": "ON",
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "OCAM_KEEP_ASSERTS": "ON"
+      }
+    },
+    {
+      "name": "msvc",
+      "hidden": true,
+      "inherits": "base",
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" },
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "cl",
+        "VCPKG_TARGET_TRIPLET": "x64-windows"
+      }
+    },
+    {
+      "name": "mingw",
+      "hidden": true,
+      "inherits": "base",
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" },
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "g++",
+        "VCPKG_TARGET_TRIPLET": "x64-mingw-dynamic",
+        "VCPKG_HOST_TRIPLET": "x64-mingw-dynamic"
+      }
+    },
+    {
+      "name": "linux-gcc",
+      "hidden": true,
+      "inherits": "base",
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" },
+      "cacheVariables": { "CMAKE_CXX_COMPILER": "g++" }
+    },
+    {
+      "name": "linux-clang",
+      "hidden": true,
+      "inherits": "base",
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" },
+      "cacheVariables": { "CMAKE_CXX_COMPILER": "clang++" }
+    },
+    {
+      "name": "macos-clang",
+      "hidden": true,
+      "inherits": "base",
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Darwin" },
+      "cacheVariables": { "CMAKE_CXX_COMPILER": "clang++" }
+    },
+
+    { "name": "msvc-headless", "displayName": "MSVC, headless", "inherits": ["msvc", "headless"] },
+    { "name": "msvc-gui", "displayName": "MSVC, with GUI", "inherits": ["msvc", "gui"] },
+    { "name": "msvc-release", "displayName": "MSVC, with GUI, optimized (packaging, benchmarks)", "inherits": ["release", "msvc", "gui"] },
+    { "name": "mingw-headless", "displayName": "MinGW (best effort), headless", "inherits": ["mingw", "headless"] },
+    { "name": "mingw-gui", "displayName": "MinGW (best effort), with GUI", "inherits": ["mingw", "gui"] },
+    { "name": "linux-gcc-headless", "displayName": "Linux GCC, headless", "inherits": ["linux-gcc", "headless"] },
+    { "name": "linux-gcc-gui", "displayName": "Linux GCC, with GUI", "inherits": ["linux-gcc", "gui"] },
+    { "name": "linux-gcc-release", "displayName": "Linux GCC, with GUI, optimized (packaging, benchmarks)", "inherits": ["release", "linux-gcc", "gui"] },
+    { "name": "linux-clang-headless", "displayName": "Linux Clang, headless", "inherits": ["linux-clang", "headless"] },
+    { "name": "linux-clang-gui", "displayName": "Linux Clang, with GUI", "inherits": ["linux-clang", "gui"] },
+    {
+      "name": "linux-clang-asan",
+      "displayName": "Linux Clang, headless, ASan+UBSan",
+      "inherits": ["linux-clang", "headless"],
+      "cacheVariables": { "OCAM_SANITIZERS": "address;undefined" }
+    },
+    {
+      "name": "linux-clang-fuzz",
+      "displayName": "Linux Clang, libFuzzer targets (ASan+UBSan)",
+      "inherits": ["linux-clang", "headless"],
+      "cacheVariables": {
+        "OCAM_BUILD_FUZZERS": "ON",
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "CMAKE_CXX_FLAGS": "-fsanitize=fuzzer-no-link,address,undefined -fno-omit-frame-pointer"
+      }
+    },
+    { "name": "macos-clang-headless", "displayName": "macOS Clang, headless", "inherits": ["macos-clang", "headless"] },
+    { "name": "macos-clang-gui", "displayName": "macOS Clang, with GUI", "inherits": ["macos-clang", "gui"] },
+    { "name": "macos-clang-release", "displayName": "macOS Clang, with GUI, optimized (packaging, benchmarks)", "inherits": ["release", "macos-clang", "gui"] },
+
+    { "name": "ci-msvc-headless", "displayName": "CI: MSVC, headless, -Werror", "inherits": ["ci", "msvc-headless"] },
+    { "name": "ci-linux-gcc-headless", "displayName": "CI: Linux GCC, headless, -Werror", "inherits": ["ci", "linux-gcc-headless"] },
+    { "name": "ci-linux-clang-headless", "displayName": "CI: Linux Clang, headless, -Werror", "inherits": ["ci", "linux-clang-headless"] },
+    { "name": "ci-linux-clang-asan", "displayName": "CI: Linux Clang, ASan+UBSan, -Werror", "inherits": ["ci", "linux-clang-asan"] },
+    { "name": "ci-macos-clang-headless", "displayName": "CI: macOS Clang, headless, -Werror", "inherits": ["ci", "macos-clang-headless"] },
+    { "name": "ci-msvc-gui", "displayName": "CI: MSVC, with GUI, -Werror", "inherits": ["ci", "msvc-gui"] },
+    { "name": "ci-linux-gcc-gui", "displayName": "CI: Linux GCC, with GUI, -Werror", "inherits": ["ci", "linux-gcc-gui"] },
+    { "name": "ci-macos-clang-gui", "displayName": "CI: macOS Clang, with GUI, -Werror", "inherits": ["ci", "macos-clang-gui"] }
+  ],
+  "buildPresets": [
+    { "name": "msvc-headless", "configurePreset": "msvc-headless" },
+    { "name": "msvc-gui", "configurePreset": "msvc-gui" },
+    { "name": "msvc-release", "configurePreset": "msvc-release" },
+    { "name": "linux-gcc-release", "configurePreset": "linux-gcc-release" },
+    { "name": "macos-clang-release", "configurePreset": "macos-clang-release" },
+    { "name": "mingw-headless", "configurePreset": "mingw-headless" },
+    { "name": "mingw-gui", "configurePreset": "mingw-gui" },
+    { "name": "linux-gcc-headless", "configurePreset": "linux-gcc-headless" },
+    { "name": "linux-gcc-gui", "configurePreset": "linux-gcc-gui" },
+    { "name": "linux-clang-headless", "configurePreset": "linux-clang-headless" },
+    { "name": "linux-clang-gui", "configurePreset": "linux-clang-gui" },
+    { "name": "linux-clang-asan", "configurePreset": "linux-clang-asan" },
+    { "name": "linux-clang-fuzz", "configurePreset": "linux-clang-fuzz" },
+    { "name": "macos-clang-headless", "configurePreset": "macos-clang-headless" },
+    { "name": "macos-clang-gui", "configurePreset": "macos-clang-gui" },
+    { "name": "ci-msvc-headless", "configurePreset": "ci-msvc-headless" },
+    { "name": "ci-linux-gcc-headless", "configurePreset": "ci-linux-gcc-headless" },
+    { "name": "ci-linux-clang-headless", "configurePreset": "ci-linux-clang-headless" },
+    { "name": "ci-linux-clang-asan", "configurePreset": "ci-linux-clang-asan" },
+    { "name": "ci-macos-clang-headless", "configurePreset": "ci-macos-clang-headless" },
+    { "name": "ci-msvc-gui", "configurePreset": "ci-msvc-gui" },
+    { "name": "ci-linux-gcc-gui", "configurePreset": "ci-linux-gcc-gui" },
+    { "name": "ci-macos-clang-gui", "configurePreset": "ci-macos-clang-gui" }
+  ],
+  "testPresets": [
+    {
+      "name": "test-base",
+      "hidden": true,
+      "output": { "outputOnFailure": true },
+      "execution": { "noTestsAction": "error" }
+    },
+    { "name": "msvc-headless", "inherits": "test-base", "configurePreset": "msvc-headless" },
+    { "name": "mingw-headless", "inherits": "test-base", "configurePreset": "mingw-headless" },
+    { "name": "linux-gcc-headless", "inherits": "test-base", "configurePreset": "linux-gcc-headless" },
+    { "name": "linux-clang-headless", "inherits": "test-base", "configurePreset": "linux-clang-headless" },
+    { "name": "linux-clang-asan", "inherits": "test-base", "configurePreset": "linux-clang-asan" },
+    { "name": "macos-clang-headless", "inherits": "test-base", "configurePreset": "macos-clang-headless" },
+    { "name": "ci-msvc-headless", "inherits": "test-base", "configurePreset": "ci-msvc-headless" },
+    { "name": "ci-linux-gcc-headless", "inherits": "test-base", "configurePreset": "ci-linux-gcc-headless" },
+    { "name": "ci-linux-clang-headless", "inherits": "test-base", "configurePreset": "ci-linux-clang-headless" },
+    { "name": "ci-linux-clang-asan", "inherits": "test-base", "configurePreset": "ci-linux-clang-asan" },
+    { "name": "ci-macos-clang-headless", "inherits": "test-base", "configurePreset": "ci-macos-clang-headless" },
+    {
+      "name": "test-no-display",
+      "hidden": true,
+      "inherits": "test-base",
+      "filter": { "exclude": { "label": "gui" } }
+    },
+    { "name": "msvc-gui", "inherits": "test-base", "configurePreset": "msvc-gui" },
+    { "name": "msvc-release", "inherits": "test-base", "configurePreset": "msvc-release" },
+    { "name": "linux-gcc-release", "inherits": "test-base", "configurePreset": "linux-gcc-release" },
+    { "name": "macos-clang-release", "inherits": "test-base", "configurePreset": "macos-clang-release" },
+    { "name": "linux-gcc-gui", "inherits": "test-base", "configurePreset": "linux-gcc-gui" },
+    { "name": "macos-clang-gui", "inherits": "test-base", "configurePreset": "macos-clang-gui" },
+    { "name": "ci-msvc-gui", "inherits": "test-no-display", "configurePreset": "ci-msvc-gui" },
+    { "name": "ci-linux-gcc-gui", "inherits": "test-base", "configurePreset": "ci-linux-gcc-gui" },
+    { "name": "ci-macos-clang-gui", "inherits": "test-no-display", "configurePreset": "ci-macos-clang-gui" }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://oxcam.invalid/schemas/fitting.v2.schema.json",
+  "title": "OxCAM lathe fitting, version 2",
+  "description": "What is fitted to a lathe for a job: a tooling block on a turret station, or a centre in the tailstock's quill. Lengths in mm, in the model's coordinates. 'step' is the SHA-256 of its STEP file, its exact geometry. A block's 'seat' is the point on the station's seat with the direction out of the turret, and 'mount' a point on the tool's centre line at the block's mouth with the direction towards the tip, which 'overhang' mm further on is where the tip stands. A centre's 'seat' is where it sits in the quill, and 'mount' its tip. A block's 'takes' says whether it holds square shanks, round bars or shanks, or both; 'square_shank' and 'round_bar' are the sizes it states [mm], and a size it does not state is not compared. 'mount_type' names how it goes on: a block's kind of mount (one of the turret's 'block_mounts', such as 'VDI 40'), a centre's interface with the quill (the tailstock's 'quill_interface', such as 'MT 4'). Version 2 replaced version 1's 'shank' and 'bore', where 0 meant anything, with 'takes' and the stated sizes.",
+  "type": "object",
+  "required": ["format", "version", "id", "name", "kind", "step", "seat", "mount"],
+  "properties": {
+    "format": { "const": "oxcam.fitting" },
+    "version": { "const": 2 },
+    "id": { "type": "string" },
+    "name": { "type": "string" },
+    "description": { "type": "string" },
+    "kind": { "enum": ["block", "centre"] },
+    "step": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "colour": { "type": "integer", "minimum": 0 },
+    "seat": { "$ref": "#/definitions/point" },
+    "seat_turn": { "type": "number" },
+    "mount": { "$ref": "#/definitions/point" },
+    "overhang": { "type": "number" },
+    "takes": { "enum": ["square", "round", "both"] },
+    "square_shank": { "type": "number", "exclusiveMinimum": 0 },
+    "round_bar": { "type": "number", "exclusiveMinimum": 0 },
+    "mount_type": { "type": "string", "minLength": 1 }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "vec3": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+    "point": {
+      "type": "object",
+      "required": ["point", "direction"],
+      "properties": {
+        "point": { "$ref": "#/definitions/vec3" },
+        "direction": { "$ref": "#/definitions/vec3" },
+        "on": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

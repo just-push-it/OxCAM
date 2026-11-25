@@ -1,0 +1,229 @@
+{
+  "format": "oxcam.machine",
+  "version": 2,
+  "id": "v2-trunnion-model",
+  "name": "Generic 5-axis trunnion machining centre (A tilt, C rotary table)",
+  "vendor": "",
+  "kinematics": "mill5_table_ac",
+  "axes": [
+    {
+      "name": "X",
+      "min": -300,
+      "max": 300,
+      "max_rate": 30000
+    },
+    {
+      "name": "Y",
+      "min": -250,
+      "max": 250,
+      "max_rate": 30000
+    },
+    {
+      "name": "Z",
+      "min": -400,
+      "max": 0,
+      "max_rate": 24000
+    },
+    {
+      "name": "A",
+      "min": -120,
+      "max": 120,
+      "max_rate": 15000
+    },
+    {
+      "name": "C",
+      "min": -360,
+      "max": 360,
+      "max_rate": 30000
+    }
+  ],
+  "spindle": {
+    "min_rpm": 100,
+    "max_rpm": 15000
+  },
+  "feed": {
+    "max": 10000,
+    "rapid": 30000
+  },
+  "tool_changer": {
+    "capacity": 30,
+    "change_time": 5
+  },
+  "work_offsets": 54,
+  "components": [
+    {
+      "name": "spindle nose",
+      "attach": "head",
+      "cylinder": {
+        "base": [
+          0,
+          0,
+          0
+        ],
+        "axis": [
+          0,
+          0,
+          1
+        ],
+        "radius": 45,
+        "length": 120
+      }
+    },
+    {
+      "name": "spindle housing",
+      "attach": "head",
+      "box": {
+        "min": [
+          -110,
+          -110,
+          120
+        ],
+        "max": [
+          110,
+          150,
+          450
+        ]
+      }
+    },
+    {
+      "name": "rotary table",
+      "attach": "table",
+      "cylinder": {
+        "base": [
+          0,
+          0,
+          -30
+        ],
+        "axis": [
+          0,
+          0,
+          1
+        ],
+        "radius": 160,
+        "length": 30
+      }
+    },
+    {
+      "name": "trunnion left",
+      "attach": "cradle",
+      "box": {
+        "min": [
+          -280,
+          -170,
+          -260
+        ],
+        "max": [
+          -220,
+          170,
+          60
+        ]
+      }
+    },
+    {
+      "name": "trunnion right",
+      "attach": "cradle",
+      "box": {
+        "min": [
+          220,
+          -170,
+          -260
+        ],
+        "max": [
+          280,
+          170,
+          60
+        ]
+      }
+    },
+    {
+      "name": "cradle",
+      "attach": "cradle",
+      "box": {
+        "min": [
+          -280,
+          -170,
+          -260
+        ],
+        "max": [
+          280,
+          170,
+          -200
+        ]
+      }
+    }
+  ],
+  "model": {
+    "axes": [
+      {
+        "name": "Y",
+        "direction": [
+          0,
+          -1,
+          0
+        ]
+      },
+      {
+        "name": "X",
+        "parent": "Y",
+        "direction": [
+          -1,
+          0,
+          0
+        ]
+      },
+      {
+        "name": "Z",
+        "direction": [
+          0,
+          0,
+          1
+        ]
+      },
+      {
+        "name": "A",
+        "parent": "X",
+        "direction": [
+          1,
+          0,
+          0
+        ],
+        "pivot": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "name": "C",
+        "parent": "A",
+        "direction": [
+          0,
+          0,
+          1
+        ],
+        "pivot": [
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "spindle": {
+      "carrier": "Z",
+      "point": [
+        0,
+        0,
+        500
+      ]
+    },
+    "table": {
+      "carrier": "C",
+      "origin": [
+        0,
+        0,
+        0
+      ]
+    },
+    "parts": []
+  }
+}

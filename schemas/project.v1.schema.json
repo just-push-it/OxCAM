@@ -1,0 +1,387 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://oxcam.invalid/schemas/project.v1.schema.json",
+  "title": "OxCAM project (project.json inside a .ocam archive), version 1",
+  "description": "All lengths in millimetres, in the project frame. 'tools' is an embedded oxcam.toollib document, each of 'machines' an oxcam.machine document and each of 'workholdings' an oxcam.workholding document (its bodies' STEP files are embedded like the models), validated by their own schemas. Each of 'posts' is a JavaScript post processor the setups use (a copy of a user's post file); a setup's 'post' chooses a built-in post or one of them by id, and 'post_options' holds the values of its options for the program and per operation (DL-0039).",
+  "type": "object",
+  "required": ["format", "version", "units", "id", "name", "models", "tools", "setups"],
+  "properties": {
+    "format": { "const": "oxcam.project" },
+    "version": { "const": 1 },
+    "units": { "const": "mm" },
+    "id": { "$ref": "#/definitions/uuid" },
+    "name": { "type": "string" },
+    "display_unit": { "enum": ["mm", "in"] },
+    "notes": { "type": "string" },
+    "models": { "type": "array", "items": { "$ref": "#/definitions/model" } },
+    "tools": { "type": "object" },
+    "machines": { "type": "array", "items": { "type": "object" } },
+    "workholdings": { "type": "array", "items": { "type": "object" } },
+    "fittings": {
+      "description": "Lathes: tooling blocks and tailstock centres the setups use, each an oxcam.fitting document (its STEP file embedded like the models), validated by its own schema.",
+      "type": "array",
+      "items": { "type": "object" }
+    },
+    "posts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["source"],
+        "properties": { "file": { "type": "string" }, "source": { "type": "string" } },
+        "additionalProperties": false
+      }
+    },
+    "setups": { "type": "array", "items": { "$ref": "#/definitions/setup" } }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+    },
+    "vec3": {
+      "type": "array",
+      "items": { "type": "number" },
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "frame": {
+      "type": "object",
+      "required": ["origin", "x_axis", "z_axis"],
+      "properties": {
+        "origin": { "$ref": "#/definitions/vec3" },
+        "x_axis": { "$ref": "#/definitions/vec3" },
+        "z_axis": { "$ref": "#/definitions/vec3" }
+      },
+      "additionalProperties": false
+    },
+    "model": {
+      "type": "object",
+      "required": ["id", "sha256"],
+      "properties": {
+        "id": { "$ref": "#/definitions/uuid" },
+        "name": { "type": "string" },
+        "source_path": { "type": "string" },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "placement": { "$ref": "#/definitions/frame" }
+      },
+      "additionalProperties": false
+    },
+    "stock": {
+      "description": "The setup's stock (DL-0038): a 'box', 'cylinder' or 'tube' sized by 'size' ('fixed': 'box_size' along the WCS X, Y and Z axes, or 'diameter' and 'length'; 'offset_from_part': the part's extent plus 'offset_side' across, 'offset_top' at the top or + end and 'offset_bottom' at the bottom or - end, sizes rounded up to a multiple of 'round_to'; 'part': the part's extent), centred on the part's box along the WCS axes (the project origin without a model) and moved by 'shift' (mm, WCS axes); a cylinder or tube runs along WCS 'axis', a tube has a bore of 'inner_diameter'. 'from_setup': the stock earlier setup 'source_setup' left. 'box_min'/'box_max' and 'cylinder_base'/'cylinder_axis' (project frame) keep fixed stock of earlier files where it was. Files of earlier versions have 'kind' (box, cylinder, offset_from_model, from_setup) in place of 'shape' and 'size', with 'box_shift', 'cylinder_diameter' and 'cylinder_length'.",
+      "type": "object",
+      "oneOf": [{ "required": ["shape"] }, { "required": ["kind"] }],
+      "properties": {
+        "shape": { "enum": ["box", "cylinder", "tube", "from_setup"] },
+        "size": { "enum": ["fixed", "offset_from_part", "part"] },
+        "axis": { "enum": ["x", "y", "z"] },
+        "box_size": { "$ref": "#/definitions/vec3" },
+        "diameter": { "type": "number", "minimum": 0 },
+        "length": { "type": "number", "minimum": 0 },
+        "inner_diameter": { "type": "number", "minimum": 0 },
+        "shift": { "$ref": "#/definitions/vec3" },
+        "box_min": { "$ref": "#/definitions/vec3" },
+        "box_max": { "$ref": "#/definitions/vec3" },
+        "cylinder_base": { "$ref": "#/definitions/vec3" },
+        "cylinder_axis": { "$ref": "#/definitions/vec3" },
+        "offset_side": { "type": "number", "minimum": 0 },
+        "offset_top": { "type": "number", "minimum": 0 },
+        "offset_bottom": { "type": "number", "minimum": 0 },
+        "round_to": { "type": "number", "minimum": 0 },
+        "source_setup": { "$ref": "#/definitions/uuid" },
+        "kind": { "enum": ["box", "cylinder", "offset_from_model", "from_setup"] },
+        "box_shift": { "$ref": "#/definitions/vec3" },
+        "cylinder_diameter": { "type": "number", "minimum": 0 },
+        "cylinder_length": { "type": "number", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "shapeRef": {
+      "type": "object",
+      "required": ["model", "type", "index", "signature"],
+      "properties": {
+        "model": { "$ref": "#/definitions/uuid" },
+        "type": { "enum": ["face", "edge", "vertex"] },
+        "index": { "type": "integer", "minimum": 1 },
+        "signature": {
+          "type": "object",
+          "required": ["centroid", "direction", "measure"],
+          "properties": {
+            "centroid": { "$ref": "#/definitions/vec3" },
+            "direction": { "$ref": "#/definitions/vec3" },
+            "measure": { "type": "number" }
+          },
+          "additionalProperties": false
+        },
+        "side": {
+          "description": "Contours and chamfers: the side of this outline; absent = the operation's.",
+          "enum": ["outside", "inside"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "operation": {
+      "type": "object",
+      "required": ["id", "type"],
+      "properties": {
+        "id": { "$ref": "#/definitions/uuid" },
+        "name": { "type": "string" },
+        "type": { "type": "string", "minLength": 1 },
+        "enabled": { "type": "boolean" },
+        "tool": { "$ref": "#/definitions/uuid" },
+        "preset": { "$ref": "#/definitions/uuid" },
+        "geometry": { "type": "array", "items": { "$ref": "#/definitions/shapeRef" } },
+        "parameters": { "type": "object" },
+        "heights": {
+          "type": "object",
+          "properties": {
+            "clearance": { "$ref": "#/definitions/height" },
+            "retract": { "$ref": "#/definitions/height" },
+            "feed": { "$ref": "#/definitions/height" },
+            "top": { "$ref": "#/definitions/height" },
+            "bottom": { "$ref": "#/definitions/height" }
+          },
+          "additionalProperties": false
+        },
+        "start_point": { "$ref": "#/definitions/shapeRef" },
+        "tool_orientation": {
+          "description": "Positional (3+2) tool orientation of the operation: its frame in the setup's WCS (Z = tool axis).",
+          "type": "object",
+          "required": ["frame"],
+          "properties": {
+            "frame": { "$ref": "#/definitions/frame" },
+            "work_offset": {
+              "description": "0 = the setup's work offset (through the table centre, where the setup's placement puts the work); 1.. = an offset of its own at the frame origin.",
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false
+        },
+        "preset_overrides": {
+          "type": "object",
+          "properties": {
+            "surface_speed": { "type": "number", "exclusiveMinimum": 0 },
+            "feed_per_tooth": { "type": "number", "minimum": 0 },
+            "axial_depth": { "type": "number", "minimum": 0 },
+            "radial_depth": { "type": "number", "minimum": 0 },
+            "plunge_feed": { "description": "mm/s", "type": "number", "exclusiveMinimum": 0 },
+            "ramp_feed": { "description": "mm/s", "type": "number", "exclusiveMinimum": 0 },
+            "lead_feed": { "description": "mm/s", "type": "number", "exclusiveMinimum": 0 },
+            "part_off_end_feed": { "description": "mm per revolution", "type": "number", "minimum": 0 },
+            "lead_feed_per_rev": { "description": "mm per revolution", "type": "number", "minimum": 0 },
+            "pull_feed": { "description": "mm/s", "type": "number", "exclusiveMinimum": 0 },
+            "plunge_feed_factor": {
+              "description": "Older files: a share of the cutting feed.",
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          },
+          "additionalProperties": false
+        },
+        "comment": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "height": {
+      "type": "object",
+      "required": ["from"],
+      "properties": {
+        "from": {
+          "enum": ["default", "stock_top", "stock_bottom", "part_top", "part_bottom", "geometry",
+                   "origin", "clearance", "retract", "top", "picked", "hole_top"]
+        },
+        "offset": { "type": "number" },
+        "shape": { "$ref": "#/definitions/shapeRef" }
+      },
+      "additionalProperties": false
+    },
+    "setupWorkholding": {
+      "description": "A workholding template of 'workholdings' holding the setup's stock in its stock holding 'holding' (absent = its first): jaws closed onto the stock ('stock') or opened to 'opening' mm (a dovetail: onto the holding's tenon width, or a tenon 'opening' mm wide); the stock 'grip_depth' mm below the jaw tops (absent = the holding's), 'shift' mm along the jaws; the stock's axes are the WCS's turned 'rotation' degrees about WCS Z onto the holding's. 'travel' sets members the holding does not close (mm). 'origin' is read only (written briefly before the setup's 'origin_from'): a workholding datum the WCS origin was kept at, read as an origin_from point on the workholding.",
+      "type": "object",
+      "required": ["template"],
+      "properties": {
+        "template": { "$ref": "#/definitions/uuid" },
+        "jaws": { "enum": ["stock", "opening"] },
+        "opening": { "type": "number", "minimum": 0 },
+        "grip_depth": { "type": "number", "minimum": 0 },
+        "rotation": { "enum": [0, 90, 180, 270] },
+        "shift": { "type": "number" },
+        "holding": { "type": "string" },
+        "travel": { "type": "object", "additionalProperties": { "type": "number" } },
+        "origin": { "type": "object", "required": ["name", "kind"] },
+        "jaw_set": {
+          "description": "A chuck with a jaw mount: the jaw set of 'workholdings' on its master jaws (absent: the chuck's own jaws).",
+          "$ref": "#/definitions/uuid"
+        },
+        "jaw_option": { "description": "The jaw set's option, by name: the way it goes on the master jaws (absent: its first).", "type": "string" },
+        "jaw_reversed": { "description": "Ignored: an earlier draft's reversed jaws (a jaw set's options say the ways it goes on)." },
+        "grip": { "description": "The jaws grip an outside diameter ('od') or an inside one ('id').", "enum": ["od", "id"] },
+        "step": { "description": "A hard jaw set's step that grips (absent: the first that grips the way 'grip' says).", "type": "string" },
+        "stop_offset": { "description": "A jaw set: how far (mm) the stock's held end stands out from the step's stop face, or a soft jaw set's bore floor (absent: 0, against it).", "type": "number", "minimum": 0 },
+        "serration": { "description": "Ignored: from an earlier draft." },
+        "soft_bore": {
+          "description": "Soft jaws bored to fit: to 'diameter' mm (absent: the held diameter of the stock plus 'clearance', minus for an inside grip), 'depth' mm back from the jaws' front, with the jaws clamping a ring or plug of 'clamp_diameter' mm on the step chosen.",
+          "type": "object",
+          "required": ["depth", "clamp_diameter"],
+          "properties": {
+            "diameter": { "type": "number", "exclusiveMinimum": 0 },
+            "clearance": { "type": "number" },
+            "depth": { "type": "number", "exclusiveMinimum": 0 },
+            "clamp_diameter": { "type": "number", "exclusiveMinimum": 0 }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "setupPlacement": {
+      "description": "Where the setup's work (its WCS with the stock, part, fixtures and workholding) sits on its machine, at machine zero in the machine model's frame: carried by the 'carrier' axis (absent = the machine base), with 'work_point' (project frame; absent = the WCS origin) at 'target' + 'offset' mm, the project axes turned 'rotation' degrees about machine X, then Y, then Z. 'target_on' and 'work_point_on' say what was snapped to. Setups without it sit at the table centre on the end of the table chain, project origin there and project axes along the machine's.",
+      "type": "object",
+      "required": ["target"],
+      "properties": {
+        "carrier": { "enum": ["X", "Y", "Z", "A", "B", "C", "C2"] },
+        "target": { "$ref": "#/definitions/vec3" },
+        "target_on": { "type": "string" },
+        "work_point": { "$ref": "#/definitions/vec3" },
+        "work_point_on": { "type": "string" },
+        "on_workholding": {
+          "description": "The workholding's mount datum (placed around the stock) is the work point: the workholding snaps onto the machine and the stock, part and WCS follow.",
+          "type": "boolean"
+        },
+        "offset": { "$ref": "#/definitions/vec3" },
+        "rotation": { "$ref": "#/definitions/vec3" }
+      },
+      "additionalProperties": false
+    },
+    "axisPick": {
+      "description": "A face or edge picked for a WCS axis: what it was ('label'), the model face or edge ('shape', absent for one on the workholding), the direction it gave in the project frame and whether the axis runs the other way ('flip').",
+      "type": "object",
+      "required": ["direction"],
+      "properties": {
+        "label": { "type": "string" },
+        "shape": { "$ref": "#/definitions/shapeRef" },
+        "direction": { "$ref": "#/definitions/vec3" },
+        "flip": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "wcsOrientation": {
+      "description": "How the setup's WCS axes (in 'wcs') were chosen: the part's own axes ('part'), or Z from a picked face or edge and X ('xz') or Y ('yz') from another ('first'), made square to Z.",
+      "type": "object",
+      "required": ["mode"],
+      "properties": {
+        "mode": { "enum": ["part", "xz", "yz"] },
+        "first": { "$ref": "#/definitions/axisPick" },
+        "z": { "$ref": "#/definitions/axisPick" }
+      },
+      "additionalProperties": false
+    },
+    "wcsOrigin": {
+      "description": "Where the setup's WCS origin is kept: a point of the stock's, the part's or the fixtures' (fixture models and workholding) box along the WCS axes ('box': per axis 0 = min, 1 = middle, 2 = max), or a picked point: a circle's or face's centre or a vertex of a model ('point') or a datum picked on the workholding ('workholding_point', as in the workholding document); moved by 'offset' along the WCS axes (mm). The 'wcs' origin stored is that point.",
+      "type": "object",
+      "required": ["from"],
+      "properties": {
+        "from": { "enum": ["stock_box", "part_box", "fixture_box", "point"] },
+        "box": { "type": "array", "items": { "enum": [0, 1, 2] }, "minItems": 3, "maxItems": 3 },
+        "point": { "$ref": "#/definitions/shapeRef" },
+        "workholding_point": { "type": "object", "required": ["name", "kind"] },
+        "label": { "type": "string" },
+        "offset": { "$ref": "#/definitions/vec3" }
+      },
+      "additionalProperties": false
+    },
+    "setup": {
+      "type": "object",
+      "required": ["id", "wcs", "stock"],
+      "properties": {
+        "id": { "$ref": "#/definitions/uuid" },
+        "name": { "type": "string" },
+        "model": { "$ref": "#/definitions/uuid" },
+        "wcs": { "$ref": "#/definitions/frame" },
+        "orientation": { "$ref": "#/definitions/wcsOrientation" },
+        "origin_from": { "$ref": "#/definitions/wcsOrigin" },
+        "work_offset": { "type": "integer", "minimum": 1 },
+        "stock": { "$ref": "#/definitions/stock" },
+        "clearance_height": { "type": "number" },
+        "retract_height": { "type": "number" },
+        "fixtures": { "type": "array", "items": { "$ref": "#/definitions/uuid" } },
+        "fixture_clearance": { "type": "number", "minimum": 0 },
+        "tailstock": {
+          "description": "Lathes: a tailstock centre on the spindle axis, in the WCS.",
+          "type": "object",
+          "properties": {
+            "tip_z": { "type": "number" },
+            "centre_diameter": { "type": "number", "exclusiveMinimum": 0 },
+            "centre_angle_deg": { "type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 180 },
+            "quill_diameter": { "type": "number", "exclusiveMinimum": 0 },
+            "quill_length": { "type": "number", "exclusiveMinimum": 0 },
+            "centre": { "$ref": "#/definitions/uuid" }
+          },
+          "additionalProperties": false
+        },
+        "steady_rest": {
+          "description": "Lathes: a steady rest around the work, in the WCS. A grip diameter of 0 is the stock's.",
+          "type": "object",
+          "properties": {
+            "z": { "type": "number" },
+            "width": { "type": "number", "exclusiveMinimum": 0 },
+            "grip_diameter": { "type": "number", "minimum": 0 },
+            "outer_diameter": { "type": "number", "exclusiveMinimum": 0 }
+          },
+          "additionalProperties": false
+        },
+        "turret": {
+          "description": "Lathes with a layout: tools in the turret beyond what the operations use, and how a tool sits there: across the spindle or along it, and its tip from the turret's centre, [towards the spindle, along Z] in mm.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["tool"],
+            "properties": {
+              "tool": { "$ref": "#/definitions/uuid" },
+              "across": { "type": "boolean" },
+              "tip": { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 },
+              "overhang": { "type": "number" }
+            },
+            "additionalProperties": false
+          }
+        },
+        "turret_blocks": {
+          "description": "Lathes with a layout: the tooling block of 'fittings' on each station that has one.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["station", "block"],
+            "properties": {
+              "station": { "type": "integer", "minimum": 1 },
+              "block": { "$ref": "#/definitions/uuid" }
+            },
+            "additionalProperties": false
+          }
+        },
+        "workholding": { "$ref": "#/definitions/setupWorkholding" },
+        "machine": { "type": "string" },
+        "placement": { "$ref": "#/definitions/setupPlacement" },
+        "post": {
+          "type": "object",
+          "required": ["id"],
+          "properties": {
+            "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$" },
+            "source": { "enum": ["builtin", "project"] }
+          },
+          "additionalProperties": false
+        },
+        "post_options": {
+          "type": "object",
+          "properties": {
+            "program": { "type": "object" },
+            "operations": { "type": "object", "additionalProperties": { "type": "object" } }
+          },
+          "additionalProperties": false
+        },
+        "operations": { "type": "array", "items": { "$ref": "#/definitions/operation" } }
+      },
+      "additionalProperties": false
+    }
+  }
+}

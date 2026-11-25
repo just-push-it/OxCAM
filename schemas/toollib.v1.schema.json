@@ -1,0 +1,249 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://oxcam.invalid/schemas/toollib.v1.schema.json",
+  "title": "OxCAM tool library, version 1",
+  "description": "Lengths are in the declared 'units'. Angles are in degrees. Surface speed is m/min for mm files and ft/min for inch files. Feed per tooth and depths are lengths.",
+  "type": "object",
+  "required": ["format", "version", "units", "tools", "holders"],
+  "properties": {
+    "format": { "const": "oxcam.toollib" },
+    "version": { "const": 1 },
+    "units": { "enum": ["mm", "in"] },
+    "id": { "$ref": "#/definitions/uuid" },
+    "name": { "type": "string" },
+    "tools": { "type": "array", "items": { "$ref": "#/definitions/tool" } },
+    "holders": { "type": "array", "items": { "$ref": "#/definitions/holder" } }
+  },
+  "definitions": {
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+    },
+    "length": { "type": "number", "minimum": 0 },
+    "angle": { "type": "number", "minimum": 0, "maximum": 360 },
+    "tool": {
+      "type": "object",
+      "required": ["id", "number", "type"],
+      "properties": {
+        "id": { "$ref": "#/definitions/uuid" },
+        "number": { "type": "integer", "minimum": 1 },
+        "name": { "type": "string" },
+        "comment": { "type": "string" },
+        "type": {
+          "enum": [
+            "flat_end_mill", "ball_end_mill", "bull_nose_end_mill", "chamfer_mill", "engraver",
+            "drill", "spot_drill", "center_drill", "reamer", "boring_bar", "tap", "thread_mill",
+            "slot_cutter", "lollipop", "form", "probe", "turning_insert", "grooving_insert",
+            "threading_insert", "parting_insert", "bar_puller"
+          ]
+        },
+        "material": { "type": "string" },
+        "coating": { "type": "string" },
+        "vendor": { "type": "string" },
+        "part_number": { "type": "string" },
+        "geometry": { "$ref": "#/definitions/millGeometry" },
+        "insert": { "$ref": "#/definitions/insert" },
+        "solid": { "$ref": "#/definitions/solidBar" },
+        "holder": { "$ref": "#/definitions/uuid" },
+        "stickout": {
+          "description": "Rotating tools: from the holder's face to the tool tip; 0 = the overall length. With the holder's height it gives the assembly's gauge length.",
+          "$ref": "#/definitions/length"
+        },
+        "units": { "enum": ["mm", "in"] },
+        "presets": { "type": "array", "items": { "$ref": "#/definitions/preset" } }
+      },
+      "additionalProperties": false
+    },
+    "millGeometry": {
+      "type": "object",
+      "properties": {
+        "diameter": { "$ref": "#/definitions/length" },
+        "corner_radius": { "$ref": "#/definitions/length" },
+        "flute_length": { "$ref": "#/definitions/length" },
+        "overall_length": { "$ref": "#/definitions/length" },
+        "shank_diameter": { "$ref": "#/definitions/length" },
+        "flutes": { "type": "integer", "minimum": 0 },
+        "tip_angle_deg": { "$ref": "#/definitions/angle" },
+        "tip_diameter": { "$ref": "#/definitions/length" },
+        "tip_length": { "$ref": "#/definitions/length" },
+        "thread_pitch": { "$ref": "#/definitions/length" },
+        "left_hand": { "type": "boolean" },
+        "neck_diameter": { "$ref": "#/definitions/length" },
+        "neck_length": { "$ref": "#/definitions/length" },
+        "trigger_offset": {
+          "description": "Probes: how far the stylus ball travels past first contact before the probe triggers (its effective radius is the ball's less this).",
+          "$ref": "#/definitions/length"
+        },
+        "form_profile": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": { "type": "number" },
+            "minItems": 2,
+            "maxItems": 2
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "solidBar": {
+      "description": "A solid turning tool, one piece with no insert or holder, by the dimensions it is sold by.",
+      "type": "object",
+      "properties": {
+        "min_bore": { "$ref": "#/definitions/length" },
+        "shank_diameter": { "$ref": "#/definitions/length" },
+        "head_length": { "$ref": "#/definitions/length" },
+        "overall_length": { "$ref": "#/definitions/length" },
+        "max_overhang": { "$ref": "#/definitions/length" },
+        "centre_to_tip": { "$ref": "#/definitions/length" },
+        "max_depth": { "$ref": "#/definitions/length" }
+      },
+      "additionalProperties": false
+    },
+    "insert": {
+      "type": "object",
+      "properties": {
+        "shape": { "type": "string", "maxLength": 2 },
+        "inscribed_circle": { "$ref": "#/definitions/length" },
+        "nose_radius": { "$ref": "#/definitions/length" },
+        "thickness": { "$ref": "#/definitions/length" },
+        "relief_angle_deg": { "$ref": "#/definitions/angle" },
+        "hand": { "enum": ["L", "R", "N"] },
+        "orientation": { "type": "integer", "minimum": 1, "maximum": 9 },
+        "width": { "$ref": "#/definitions/length" },
+        "thread_pitch": { "$ref": "#/definitions/length" },
+        "locking": {
+          "description": "How the insert is held, by the hole it has. Without it, it fits any clamping.",
+          "enum": ["not_set", "cylindrical_hole", "no_hole", "countersunk_hole"]
+        },
+        "cutting_edge_angle_deg": {
+          "description": "Turning inserts: the leading edge's angle to a feed towards -Z, which places the insert (an ISO holder gives it). Absent or 0: as on a 93-95 degree holder.",
+          "$ref": "#/definitions/angle"
+        }
+      },
+      "additionalProperties": false
+    },
+    "isoHolderCode": {
+      "description": "The designation of an ISO turning holder: a rectangular shank (ISO 5608) or a boring bar (ISO 5609-1), with its dimension f (ISO 5610, ISO 6261).",
+      "type": "object",
+      "properties": {
+        "boring_bar": { "type": "boolean" },
+        "bar_type": { "type": "string", "maxLength": 1 },
+        "clamping": { "type": "string", "maxLength": 1 },
+        "insert_shape": { "type": "string", "maxLength": 1 },
+        "style": { "type": "string", "maxLength": 1 },
+        "clearance": { "type": "string", "maxLength": 1 },
+        "hand": { "enum": ["R", "L", "N"] },
+        "height": { "$ref": "#/definitions/length" },
+        "width": { "$ref": "#/definitions/length" },
+        "length": { "type": "string", "maxLength": 1 },
+        "insert_size": { "type": "integer", "minimum": 0 },
+        "f": { "$ref": "#/definitions/length" },
+        "custom_style_deg": {
+          "description": "Style X: the cutting edge's angle to a feed towards -Z.",
+          "$ref": "#/definitions/angle"
+        },
+        "custom_clearance_deg": {
+          "description": "Clearance O: the insert's clearance.",
+          "$ref": "#/definitions/angle"
+        },
+        "custom_length": {
+          "description": "Length X: the overall length.",
+          "$ref": "#/definitions/length"
+        }
+      },
+      "additionalProperties": false
+    },
+    "preset": {
+      "type": "object",
+      "required": ["id"],
+      "properties": {
+        "id": { "$ref": "#/definitions/uuid" },
+        "name": { "type": "string" },
+        "material_group": { "type": "string" },
+        "surface_speed": { "type": "number", "minimum": 0 },
+        "feed_per_tooth": { "$ref": "#/definitions/length" },
+        "axial_depth": { "$ref": "#/definitions/length" },
+        "radial_depth": { "$ref": "#/definitions/length" },
+        "ramp_angle_deg": { "type": "number", "minimum": 0, "maximum": 90 },
+        "plunge_feed": {
+          "description": "Plunge feed rate in mm/min (mm files) or in/min (inch files).",
+          "type": "number",
+          "minimum": 0
+        },
+        "ramp_feed": {
+          "description": "Ramp and helix feed rate in mm/min (mm files) or in/min (inch files). Older files without it ramped at the cutting feed.",
+          "type": "number",
+          "minimum": 0
+        },
+        "lead_feed": {
+          "description": "Lead-in and lead-out feed rate in mm/min (mm files) or in/min (inch files). Older files without it led at the cutting feed.",
+          "type": "number",
+          "minimum": 0
+        },
+        "part_off_end_feed": {
+          "description": "Feed per revolution over the end of a part-off, as a length. Older files without it ran at half the feed per revolution.",
+          "type": "number",
+          "minimum": 0
+        },
+        "lead_feed_per_rev": {
+          "description": "Feed per revolution of turning's lead moves, as a length. Older files without it led at the feed per revolution.",
+          "type": "number",
+          "minimum": 0
+        },
+        "pull_feed": {
+          "description": "Bar pullers: feed rate of the pull in mm/min (mm files) or in/min (inch files).",
+          "type": "number",
+          "minimum": 0
+        },
+        "plunge_feed_factor": {
+          "description": "Older files: the plunge feed as a share of the cutting feed.",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        },
+        "coolant": { "enum": ["off", "flood", "mist", "air", "through_tool"] }
+      },
+      "additionalProperties": false
+    },
+    "holder": {
+      "type": "object",
+      "required": ["id", "profile"],
+      "properties": {
+        "id": { "$ref": "#/definitions/uuid" },
+        "kind": {
+          "description": "What the holder holds: rotating tools in the milling spindle, or turning tools. Absent in files written before holders had a kind: then a holder only turning tools use is a turning holder, any other a milling holder.",
+          "enum": ["milling", "turning"]
+        },
+        "name": { "type": "string" },
+        "comment": { "type": "string" },
+        "vendor": { "type": "string" },
+        "part_number": { "type": "string" },
+        "iso": { "$ref": "#/definitions/isoHolderCode" },
+        "stick": {
+          "description": "A plain turning holder: a rectangular shank along +X, or a round bar along +Z.",
+          "type": "object",
+          "properties": {
+            "bar": { "type": "boolean" },
+            "width": { "$ref": "#/definitions/length" },
+            "f": { "$ref": "#/definitions/length" },
+            "length": { "$ref": "#/definitions/length" }
+          },
+          "additionalProperties": false
+        },
+        "profile": {
+          "description": "Open polyline [radius, height, bulge] from the axis at height 0 to the axis at the top.",
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "array",
+            "items": { "type": "number" },
+            "minItems": 2,
+            "maxItems": 3
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

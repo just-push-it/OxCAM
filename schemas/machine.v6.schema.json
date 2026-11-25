@@ -1,0 +1,149 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://oxcam.invalid/schemas/machine.v6.schema.json",
+  "title": "OxCAM machine definition, version 6",
+  "description": "Lengths in mm, rates in mm/min, angles in degrees. Rotary axis limits are in degrees. Kinematics: 3-axis mills, 4-axis mills with a rotary table about X, 5-axis table-table, head-table and head-head machines, and 2-axis lathes; mill-turn and Swiss machines extend the axis list and kinematics type. Components are boxes and cylinders for machine collision checks, in the frame of what carries them (head, table or cradle). The optional model (version 2; parts shown or hidden in the view since version 3; version 4 dropped the table's carrier and origin: where the work sits is each setup's placement; version 5 stores parts as STEP, their exact geometry, with meshes tessellated from it at 'mesh_tolerance' mm when loaded) is the machine's kinematic tree and mesh parts for the simulation: axes with their parent axis, direction and pivot, the spindle's carrier and gauge point at machine zero, and parts stored as STEP files named <step>.step (their exact geometry) or, for parts imported from STL, binary STL files named <mesh>.stl, in the folder <machine file name>.meshes next to the machine file (in projects: machines/<file> in the archive). Version 6 added 'post': the id of the post processor the machine is posted with unless a setup chooses another (a built-in post or one the project carries, DL-0039), and 'post_options', the machine's values of that post's program options.",
+  "type": "object",
+  "required": ["format", "version", "id", "name", "kinematics", "axes", "spindle", "feed"],
+  "properties": {
+    "format": { "const": "oxcam.machine" },
+    "version": { "const": 6 },
+    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$" },
+    "name": { "type": "string" },
+    "vendor": { "type": "string" },
+    "kinematics": {
+      "enum": ["mill3", "mill4_a", "mill5_table_ac", "mill5_table_bc", "mill5_head_table_bc",
+               "mill5_head_bc", "lathe2"]
+    },
+    "axes": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["name", "min", "max"],
+        "properties": {
+          "name": { "enum": ["X", "Y", "Z", "A", "B", "C"] },
+          "min": { "type": "number" },
+          "max": { "type": "number" },
+          "max_rate": { "type": "number", "exclusiveMinimum": 0 }
+        },
+        "additionalProperties": false
+      }
+    },
+    "spindle": {
+      "type": "object",
+      "required": ["max_rpm"],
+      "properties": {
+        "min_rpm": { "type": "number", "minimum": 0 },
+        "max_rpm": { "type": "number", "exclusiveMinimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "feed": {
+      "type": "object",
+      "required": ["max", "rapid"],
+      "properties": {
+        "max": { "type": "number", "exclusiveMinimum": 0 },
+        "rapid": { "type": "number", "exclusiveMinimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "tool_changer": {
+      "type": "object",
+      "properties": {
+        "capacity": { "type": "integer", "minimum": 0 },
+        "change_time": { "type": "number", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "work_offsets": { "type": "integer", "minimum": 1 },
+    "post": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$" },
+    "post_options": {
+      "description": "Values of the default post's program options ({option id: value}): what setups on the machine start from, under their own values.",
+      "type": "object"
+    },
+    "pivot_length": { "type": "number", "minimum": 0 },
+    "components": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "attach"],
+        "properties": {
+          "name": { "type": "string" },
+          "attach": { "enum": ["head", "table", "cradle"] },
+          "box": {
+            "type": "object",
+            "required": ["min", "max"],
+            "properties": { "min": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 }, "max": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 } },
+            "additionalProperties": false
+          },
+          "cylinder": {
+            "type": "object",
+            "required": ["base", "axis", "radius", "length"],
+            "properties": {
+              "base": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+              "axis": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+              "radius": { "type": "number", "exclusiveMinimum": 0 },
+              "length": { "type": "number", "exclusiveMinimum": 0 }
+            },
+            "additionalProperties": false
+          }
+        },
+        "oneOf": [{ "required": ["box"] }, { "required": ["cylinder"] }],
+        "additionalProperties": false
+      }
+    },
+    "model": {
+      "type": "object",
+      "required": ["axes", "spindle"],
+      "properties": {
+        "axes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "direction"],
+            "properties": {
+              "name": { "enum": ["X", "Y", "Z", "A", "B", "C"] },
+              "parent": { "enum": ["X", "Y", "Z", "A", "B", "C"] },
+              "direction": { "$ref": "#/definitions/vec3" },
+              "pivot": { "$ref": "#/definitions/vec3" }
+            },
+            "additionalProperties": false
+          }
+        },
+        "spindle": {
+          "type": "object",
+          "required": ["point"],
+          "properties": { "carrier": { "enum": ["X", "Y", "Z", "A", "B", "C"] }, "point": { "$ref": "#/definitions/vec3" } },
+          "additionalProperties": false
+        },
+        "mesh_tolerance": { "type": "number", "exclusiveMinimum": 0 },
+        "parts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name"],
+            "oneOf": [{ "required": ["step"] }, { "required": ["mesh"] }],
+            "properties": {
+              "name": { "type": "string" },
+              "carrier": { "enum": ["X", "Y", "Z", "A", "B", "C"] },
+              "step": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+              "mesh": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+              "offset": { "$ref": "#/definitions/vec3" },
+              "rotation": { "$ref": "#/definitions/vec3" },
+              "colour": { "type": "string", "pattern": "^#[0-9a-f]{6}$" },
+              "collides": { "type": "boolean" },
+              "shown": { "type": "boolean" }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "vec3": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 }
+  }
+}

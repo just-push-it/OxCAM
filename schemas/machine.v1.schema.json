@@ -1,0 +1,93 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://oxcam.invalid/schemas/machine.v1.schema.json",
+  "title": "OxCAM machine definition, version 1",
+  "description": "Lengths in mm, rates in mm/min, angles in degrees. Rotary axis limits are in degrees. Kinematics: 3-axis mills, 4-axis mills with a rotary table about X, 5-axis table-table, head-table and head-head machines, and 2-axis lathes; mill-turn and Swiss machines extend the axis list and kinematics type. Components are boxes and cylinders for machine collision checks, in the frame of what carries them (head, table or cradle).",
+  "type": "object",
+  "required": ["format", "version", "id", "name", "kinematics", "axes", "spindle", "feed"],
+  "properties": {
+    "format": { "const": "oxcam.machine" },
+    "version": { "const": 1 },
+    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$" },
+    "name": { "type": "string" },
+    "vendor": { "type": "string" },
+    "kinematics": {
+      "enum": ["mill3", "mill4_a", "mill5_table_ac", "mill5_table_bc", "mill5_head_table_bc",
+               "mill5_head_bc", "lathe2"]
+    },
+    "axes": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["name", "min", "max"],
+        "properties": {
+          "name": { "enum": ["X", "Y", "Z", "A", "B", "C"] },
+          "min": { "type": "number" },
+          "max": { "type": "number" },
+          "max_rate": { "type": "number", "exclusiveMinimum": 0 }
+        },
+        "additionalProperties": false
+      }
+    },
+    "spindle": {
+      "type": "object",
+      "required": ["max_rpm"],
+      "properties": {
+        "min_rpm": { "type": "number", "minimum": 0 },
+        "max_rpm": { "type": "number", "exclusiveMinimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "feed": {
+      "type": "object",
+      "required": ["max", "rapid"],
+      "properties": {
+        "max": { "type": "number", "exclusiveMinimum": 0 },
+        "rapid": { "type": "number", "exclusiveMinimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "tool_changer": {
+      "type": "object",
+      "properties": {
+        "capacity": { "type": "integer", "minimum": 0 },
+        "change_time": { "type": "number", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "work_offsets": { "type": "integer", "minimum": 1 },
+    "pivot_length": { "type": "number", "minimum": 0 },
+    "components": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "attach"],
+        "properties": {
+          "name": { "type": "string" },
+          "attach": { "enum": ["head", "table", "cradle"] },
+          "box": {
+            "type": "object",
+            "required": ["min", "max"],
+            "properties": { "min": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 }, "max": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 } },
+            "additionalProperties": false
+          },
+          "cylinder": {
+            "type": "object",
+            "required": ["base", "axis", "radius", "length"],
+            "properties": {
+              "base": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+              "axis": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+              "radius": { "type": "number", "exclusiveMinimum": 0 },
+              "length": { "type": "number", "exclusiveMinimum": 0 }
+            },
+            "additionalProperties": false
+          }
+        },
+        "oneOf": [{ "required": ["box"] }, { "required": ["cylinder"] }],
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

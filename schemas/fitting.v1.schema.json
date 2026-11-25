@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://oxcam.invalid/schemas/fitting.v1.schema.json",
+  "title": "OxCAM lathe fitting, version 1",
+  "description": "What is fitted to a lathe for a job: a tooling block on a turret station, or a centre in the tailstock's quill. Lengths in mm, in the model's coordinates. 'step' is the SHA-256 of its STEP file, its exact geometry. A block's 'seat' is the point on the station's seat with the direction out of the turret, and 'mount' a point on the tool's centre line at the block's mouth with the direction towards the tip, which 'overhang' mm further on is where the tip stands. A centre's 'seat' is where it sits in the quill, and 'mount' its tip. 'shank' and 'bore' say what a block takes (0 = anything).",
+  "type": "object",
+  "required": ["format", "version", "id", "name", "kind", "step", "seat", "mount"],
+  "properties": {
+    "format": { "const": "oxcam.fitting" },
+    "version": { "const": 1 },
+    "id": { "type": "string" },
+    "name": { "type": "string" },
+    "description": { "type": "string" },
+    "kind": { "enum": ["block", "centre"] },
+    "step": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "colour": { "type": "integer", "minimum": 0 },
+    "seat": { "$ref": "#/definitions/point" },
+    "seat_turn": { "type": "number" },
+    "mount": { "$ref": "#/definitions/point" },
+    "overhang": { "type": "number" },
+    "shank": { "type": "number", "minimum": 0 },
+    "bore": { "type": "number", "minimum": 0 }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "vec3": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+    "point": {
+      "type": "object",
+      "required": ["point", "direction"],
+      "properties": {
+        "point": { "$ref": "#/definitions/vec3" },
+        "direction": { "$ref": "#/definitions/vec3" },
+        "on": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

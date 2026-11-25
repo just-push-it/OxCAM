@@ -1,0 +1,147 @@
+{
+  "compensation": "none",
+  "coolant": "flood",
+  "cycles": [
+    {
+      "F": 1200.0,
+      "bottom": -13.403442,
+      "chip_break_retract": 0.5,
+      "dwell": 0.0,
+      "peck": 0.0,
+      "pitch": 0.0,
+      "retract": 2.0,
+      "top": 0.0,
+      "type": "drill"
+    },
+    {
+      "F": 1200.0,
+      "bottom": -42.403442,
+      "chip_break_retract": 0.5,
+      "dwell": 0.0,
+      "peck": 8.0,
+      "pitch": 0.0,
+      "retract": 2.0,
+      "top": 0.0,
+      "type": "peck"
+    },
+    {
+      "F": 1200.0,
+      "bottom": -12.403442,
+      "chip_break_retract": 0.5,
+      "dwell": 0.0,
+      "peck": 0.0,
+      "pitch": 0.0,
+      "retract": 2.0,
+      "top": 0.0,
+      "type": "drill"
+    },
+    {
+      "F": 1200.0,
+      "bottom": -3.403442,
+      "chip_break_retract": 0.5,
+      "dwell": 0.0,
+      "peck": 0.0,
+      "pitch": 0.0,
+      "retract": 7.0,
+      "top": 5.0,
+      "type": "drill"
+    }
+  ],
+  "moves": [
+    {
+      "F": 1200.0,
+      "f": "plunge",
+      "i": 0,
+      "k": "CY",
+      "p": [
+        10.0,
+        0.0,
+        2.0
+      ]
+    },
+    {
+      "k": "R",
+      "p": [
+        30.0,
+        0.0,
+        2.0
+      ]
+    },
+    {
+      "F": 1200.0,
+      "f": "plunge",
+      "i": 1,
+      "k": "CY",
+      "p": [
+        30.0,
+        0.0,
+        2.0
+      ]
+    },
+    {
+      "k": "R",
+      "p": [
+        50.0,
+        0.0,
+        2.0
+      ]
+    },
+    {
+      "F": 1200.0,
+      "f": "plunge",
+      "i": 2,
+      "k": "CY",
+      "p": [
+        50.0,
+        0.0,
+        2.0
+      ]
+    },
+    {
+      "k": "R",
+      "p": [
+        50.0,
+        0.0,
+        15.0
+      ]
+    },
+    {
+      "k": "R",
+      "p": [
+        30.0,
+        30.0,
+        15.0
+      ]
+    },
+    {
+      "F": 1200.0,
+      "f": "plunge",
+      "i": 3,
+      "k": "CY",
+      "p": [
+        30.0,
+        30.0,
+        7.0
+      ]
+    },
+    {
+      "k": "R",
+      "p": [
+        30.0,
+        30.0,
+        15.0
+      ]
+    }
+  ],
+  "operation": "00000000-0000-0000-0000-000000000000",
+  "spindle_rpm": 9000.0,
+  "start": [
+    10.0,
+    0.0,
+    15.0
+  ],
+  "strategy": "drill",
+  "tool_diameter": 8.0,
+  "tool_number": 1,
+  "warnings": []
+}

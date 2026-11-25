@@ -1,0 +1,650 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://oxcam.invalid/schemas/machine.v11.schema.json",
+  "title": "OxCAM machine definition, version 11",
+  "description": "Lengths in mm, rates in mm/min, angles in degrees. Rotary axis limits are in degrees. Kinematics: 3-axis mills, 4-axis mills with a rotary table about X, 5-axis table-table, head-table and head-head machines, and 2-axis lathes; mill-turn and Swiss machines extend the axis list and kinematics type. Components are boxes and cylinders for machine collision checks, in the frame of what carries them (head, table or cradle). The optional model (version 2; parts shown or hidden in the view since version 3; version 4 dropped the table's carrier and origin: where the work sits is each setup's placement; version 5 stores parts as STEP, their exact geometry, with meshes tessellated from it at 'mesh_tolerance' mm when loaded) is the machine's kinematic tree and mesh parts for the simulation: axes with their parent axis, direction and pivot, the spindle's carrier and gauge point at machine zero, and parts stored as STEP files named <step>.step (their exact geometry) or, for parts imported from STL, binary STL files named <mesh>.stl, in the folder <machine file name>.meshes next to the machine file (in projects: machines/<file> in the archive). Version 6 added 'post': the id of the post processor the machine is posted with unless a setup chooses another (a built-in post or one the project carries, DL-0039), and 'post_options', the machine's values of that post's program options. Version 8 added 'lathe': a lathe's layout for the machine simulation (turret, spindle, chuck, tailstock, sub-spindle, enclosure), and the model axes T (turret index), W (tailstock), Z2 and C2 (sub-spindle). Version 9 added 'block_radius' and 'block_along' to the turret: where a tooling block seats on a station. Version 10 added the turret's 'block_mounts', the kinds of tooling block it takes (names such as 'VDI 40' or 'BMT 55'), and the tailstock's 'quill_interface', what its quill takes (such as 'MT 4'). A fitting fits when its 'mount_type' is one of them, compared without regard to case or spacing; a machine that names none says nothing, and every fitting is offered. Version 11 added the turret's 'station_mounts', the kinds of block stations take where they differ from 'block_mounts' (a turret with turning and milling stations); the turret's 'block_across', a station seat's offset sideways (a turret whose station faces are shifted off the line through its centre); and the lathe's 'workholding_mount', where a setup's workholding seats on the main spindle.",
+  "type": "object",
+  "required": [
+    "format",
+    "version",
+    "id",
+    "name",
+    "kinematics",
+    "axes",
+    "spindle",
+    "feed"
+  ],
+  "properties": {
+    "format": {
+      "const": "oxcam.machine"
+    },
+    "version": {
+      "const": 11
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]*$"
+    },
+    "name": {
+      "type": "string"
+    },
+    "vendor": {
+      "type": "string"
+    },
+    "kinematics": {
+      "enum": [
+        "mill3",
+        "mill4_a",
+        "mill5_table_ac",
+        "mill5_table_bc",
+        "mill5_head_table_bc",
+        "mill5_head_bc",
+        "lathe2"
+      ]
+    },
+    "axes": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "min",
+          "max"
+        ],
+        "properties": {
+          "name": {
+            "enum": [
+              "X",
+              "Y",
+              "Z",
+              "A",
+              "B",
+              "C"
+            ]
+          },
+          "min": {
+            "type": "number"
+          },
+          "max": {
+            "type": "number"
+          },
+          "max_rate": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "spindle": {
+      "type": "object",
+      "required": [
+        "max_rpm"
+      ],
+      "properties": {
+        "min_rpm": {
+          "type": "number",
+          "minimum": 0
+        },
+        "max_rpm": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "feed": {
+      "type": "object",
+      "required": [
+        "max",
+        "rapid"
+      ],
+      "properties": {
+        "max": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "rapid": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "tool_changer": {
+      "type": "object",
+      "properties": {
+        "capacity": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "change_time": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "work_offsets": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "live_tool": {
+      "description": "Lathes: driven tools in the turret, with the spindle as a C axis. Without it the machine has none.",
+      "type": "object",
+      "properties": {
+        "max_rpm": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      },
+      "required": [
+        "max_rpm"
+      ],
+      "additionalProperties": false
+    },
+    "post": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]*$"
+    },
+    "post_options": {
+      "description": "Values of the default post's program options ({option id: value}): what setups on the machine start from, under their own values.",
+      "type": "object"
+    },
+    "pivot_length": {
+      "type": "number",
+      "minimum": 0
+    },
+    "components": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "attach"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "attach": {
+            "enum": [
+              "head",
+              "table",
+              "cradle"
+            ]
+          },
+          "box": {
+            "type": "object",
+            "required": [
+              "min",
+              "max"
+            ],
+            "properties": {
+              "min": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "minItems": 3,
+                "maxItems": 3
+              },
+              "max": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "minItems": 3,
+                "maxItems": 3
+              }
+            },
+            "additionalProperties": false
+          },
+          "cylinder": {
+            "type": "object",
+            "required": [
+              "base",
+              "axis",
+              "radius",
+              "length"
+            ],
+            "properties": {
+              "base": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "minItems": 3,
+                "maxItems": 3
+              },
+              "axis": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "minItems": 3,
+                "maxItems": 3
+              },
+              "radius": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "length": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "oneOf": [
+          {
+            "required": [
+              "box"
+            ]
+          },
+          {
+            "required": [
+              "cylinder"
+            ]
+          }
+        ],
+        "additionalProperties": false
+      }
+    },
+    "model": {
+      "type": "object",
+      "required": [
+        "axes",
+        "spindle"
+      ],
+      "properties": {
+        "axes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "direction"
+            ],
+            "properties": {
+              "name": {
+                "enum": [
+                  "X",
+                  "Y",
+                  "Z",
+                  "A",
+                  "B",
+                  "C",
+                  "T",
+                  "W",
+                  "Z2",
+                  "C2"
+                ]
+              },
+              "parent": {
+                "enum": [
+                  "X",
+                  "Y",
+                  "Z",
+                  "A",
+                  "B",
+                  "C",
+                  "T",
+                  "W",
+                  "Z2",
+                  "C2"
+                ]
+              },
+              "direction": {
+                "$ref": "#/definitions/vec3"
+              },
+              "pivot": {
+                "$ref": "#/definitions/vec3"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "spindle": {
+          "type": "object",
+          "required": [
+            "point"
+          ],
+          "properties": {
+            "carrier": {
+              "enum": [
+                "X",
+                "Y",
+                "Z",
+                "A",
+                "B",
+                "C",
+                "T",
+                "W",
+                "Z2",
+                "C2"
+              ]
+            },
+            "point": {
+              "$ref": "#/definitions/vec3"
+            }
+          },
+          "additionalProperties": false
+        },
+        "mesh_tolerance": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "parts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name"
+            ],
+            "oneOf": [
+              {
+                "required": [
+                  "step"
+                ]
+              },
+              {
+                "required": [
+                  "mesh"
+                ]
+              }
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "carrier": {
+                "enum": [
+                  "X",
+                  "Y",
+                  "Z",
+                  "A",
+                  "B",
+                  "C",
+                  "T",
+                  "W",
+                  "Z2",
+                  "C2"
+                ]
+              },
+              "step": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "mesh": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "offset": {
+                "$ref": "#/definitions/vec3"
+              },
+              "rotation": {
+                "$ref": "#/definitions/vec3"
+              },
+              "colour": {
+                "type": "string",
+                "pattern": "^#[0-9a-f]{6}$"
+              },
+              "collides": {
+                "type": "boolean"
+              },
+              "shown": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "lathe": {
+      "description": "A lathe's layout for the machine simulation. Model frame: Z along the spindle's centre line, +Z away from the headstock, the spindle's nose at Z 0, +X towards the turret. A size of 0 means that solid is not here (a part of the model may be it).",
+      "type": "object",
+      "required": [
+        "turret"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "turret": {
+          "type": "object",
+          "required": [
+            "centre",
+            "axis",
+            "radial_reach",
+            "axial_pitch",
+            "axial_reach"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "centre": {
+              "$ref": "#/definitions/vec3"
+            },
+            "axis": {
+              "$ref": "#/definitions/vec3"
+            },
+            "diameter": {
+              "type": "number",
+              "minimum": 0
+            },
+            "width": {
+              "type": "number",
+              "minimum": 0
+            },
+            "radial_reach": {
+              "type": "number",
+              "minimum": 0
+            },
+            "axial_pitch": {
+              "type": "number",
+              "minimum": 0
+            },
+            "axial_reach": {
+              "type": "number",
+              "minimum": 0
+            },
+            "index_at_home": {
+              "type": "boolean"
+            },
+            "block_radius": {
+              "type": "number",
+              "minimum": 0
+            },
+            "block_across": {
+              "description": "Where a block seats on a station, across: along the working station's Y from the index line's plane (a turret whose station faces are shifted sideways, its centre off the spindle's plane). Turned with the station. A tool without a block stands as far sideways (DL-0068).",
+              "type": "number"
+            },
+            "block_along": {
+              "type": "number"
+            },
+            "block_mounts": {
+              "description": "The kinds of tooling block the turret takes, by name (DL-0068).",
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "station_mounts": {
+              "description": "Stations that take other kinds of block than 'block_mounts' says (milling stations of a turret with turning ones): each entry's stations take its block_mounts. A station in none takes 'block_mounts' (DL-0068).",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "stations",
+                  "block_mounts"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "stations": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "integer",
+                      "minimum": 1
+                    }
+                  },
+                  "block_mounts": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "clearance": {
+          "type": "number",
+          "minimum": 0
+        },
+        "headstock": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "diameter": {
+              "type": "number",
+              "minimum": 0
+            },
+            "length": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        },
+        "chuck": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "diameter": {
+              "type": "number",
+              "minimum": 0
+            },
+            "length": {
+              "type": "number",
+              "minimum": 0
+            },
+            "grip": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        },
+        "workholding_mount": {
+          "description": "Where a setup's workholding seats on the main spindle: its back on the spindle's axis 'z' mm from the nose (the front of a back plate), turning with C. The machine's own chuck stands there too. None: on the nose (DL-0068).",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "z"
+          ],
+          "properties": {
+            "z": {
+              "type": "number"
+            }
+          }
+        },
+        "enclosure": {
+          "type": "object",
+          "required": [
+            "min",
+            "max"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "min": {
+              "$ref": "#/definitions/vec3"
+            },
+            "max": {
+              "$ref": "#/definitions/vec3"
+            },
+            "wall": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        },
+        "tailstock": {
+          "type": "object",
+          "required": [
+            "z"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "z": {
+              "type": "number"
+            },
+            "diameter": {
+              "type": "number",
+              "minimum": 0
+            },
+            "length": {
+              "type": "number",
+              "minimum": 0
+            },
+            "quill_interface": {
+              "description": "What the quill takes, by name, such as 'MT 4' (DL-0068).",
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "sub_spindle": {
+          "type": "object",
+          "required": [
+            "nose"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "nose": {
+              "type": "number"
+            },
+            "diameter": {
+              "type": "number",
+              "minimum": 0
+            },
+            "length": {
+              "type": "number",
+              "minimum": 0
+            },
+            "chuck_diameter": {
+              "type": "number",
+              "minimum": 0
+            },
+            "chuck_length": {
+              "type": "number",
+              "minimum": 0
+            },
+            "grip": {
+              "type": "number",
+              "minimum": 0
+            },
+            "work_z2": {
+              "type": "number"
+            }
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "vec3": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      },
+      "minItems": 3,
+      "maxItems": 3
+    }
+  }
+}

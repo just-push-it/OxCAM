@@ -1,0 +1,155 @@
+{
+  "format": "opencam.toollib",
+  "version": 1,
+  "units": "mm",
+  "id": "0c4a0000-0000-4000-8000-000000000000",
+  "name": "Sample metric milling tools (generic starting values; check your tool vendor's data)",
+  "holders": [
+    {
+      "id": "0c4a0000-0000-4000-8000-0000000000a1",
+      "name": "Generic ER20 collet chuck",
+      "comment": "Simplified outline",
+      "profile": [[0, 0], [17, 0], [17, 32], [20, 40], [20, 60], [0, 60]]
+    }
+  ],
+  "tools": [
+    {
+      "id": "0c4a0000-0000-4000-8000-000000000001",
+      "number": 1,
+      "name": "Ø10 flat end mill",
+      "type": "flat_end_mill",
+      "material": "carbide",
+      "coating": "AlTiN",
+      "geometry": { "diameter": 10, "flute_length": 22, "overall_length": 72, "flutes": 3 },
+      "holder": "0c4a0000-0000-4000-8000-0000000000a1",
+      "stickout": 35,
+      "presets": [
+        {
+          "id": "0c4a0000-0000-4000-8000-000000000101",
+          "name": "Aluminium roughing",
+          "material_group": "N",
+          "surface_speed": 300,
+          "feed_per_tooth": 0.05,
+          "axial_depth": 10,
+          "radial_depth": 2,
+          "ramp_angle_deg": 2,
+          "plunge_feed": 430,
+          "ramp_feed": 1432,
+          "lead_feed": 1432,
+          "coolant": "flood"
+        },
+        {
+          "id": "0c4a0000-0000-4000-8000-000000000102",
+          "name": "Mild steel roughing",
+          "material_group": "P",
+          "surface_speed": 120,
+          "feed_per_tooth": 0.04,
+          "axial_depth": 8,
+          "radial_depth": 1,
+          "ramp_angle_deg": 2,
+          "plunge_feed": 140,
+          "ramp_feed": 458,
+          "lead_feed": 458,
+          "coolant": "flood"
+        }
+      ]
+    },
+    {
+      "id": "0c4a0000-0000-4000-8000-000000000002",
+      "number": 2,
+      "name": "Ø6 flat end mill",
+      "type": "flat_end_mill",
+      "material": "carbide",
+      "geometry": { "diameter": 6, "flute_length": 13, "overall_length": 57, "flutes": 3 },
+      "holder": "0c4a0000-0000-4000-8000-0000000000a1",
+      "stickout": 25,
+      "presets": [
+        {
+          "id": "0c4a0000-0000-4000-8000-000000000201",
+          "name": "Aluminium finishing",
+          "material_group": "N",
+          "surface_speed": 250,
+          "feed_per_tooth": 0.03,
+          "axial_depth": 6,
+          "radial_depth": 0.3,
+          "plunge_feed": 600,
+          "ramp_feed": 1194,
+          "lead_feed": 1194,
+          "coolant": "mist"
+        }
+      ]
+    },
+    {
+      "id": "0c4a0000-0000-4000-8000-000000000003",
+      "number": 3,
+      "name": "Ø6 ball end mill",
+      "type": "ball_end_mill",
+      "material": "carbide",
+      "geometry": { "diameter": 6, "flute_length": 12, "overall_length": 57, "flutes": 2 },
+      "stickout": 25,
+      "presets": []
+    },
+    {
+      "id": "0c4a0000-0000-4000-8000-000000000004",
+      "number": 4,
+      "name": "Ø12 R1 bull-nose end mill",
+      "type": "bull_nose_end_mill",
+      "material": "carbide",
+      "geometry": { "diameter": 12, "corner_radius": 1, "flute_length": 26, "overall_length": 83, "flutes": 4 },
+      "stickout": 40,
+      "presets": []
+    },
+    {
+      "id": "0c4a0000-0000-4000-8000-000000000005",
+      "number": 5,
+      "name": "Ø10 90° spot drill",
+      "type": "spot_drill",
+      "material": "carbide",
+      "geometry": { "diameter": 10, "flute_length": 8, "overall_length": 72, "flutes": 2, "tip_angle_deg": 90 },
+      "stickout": 30,
+      "presets": []
+    },
+    {
+      "id": "0c4a0000-0000-4000-8000-000000000006",
+      "number": 6,
+      "name": "Ø8.5 drill (M10 tap drill)",
+      "type": "drill",
+      "material": "carbide",
+      "geometry": { "diameter": 8.5, "flute_length": 43, "overall_length": 103, "flutes": 2, "tip_angle_deg": 140 },
+      "stickout": 60,
+      "presets": [
+        {
+          "id": "0c4a0000-0000-4000-8000-000000000601",
+          "name": "Mild steel",
+          "material_group": "P",
+          "surface_speed": 90,
+          "feed_per_tooth": 0.12,
+          "plunge_feed": 800,
+          "ramp_feed": 809,
+          "lead_feed": 809,
+          "coolant": "through_tool"
+        }
+      ]
+    },
+    {
+      "id": "0c4a0000-0000-4000-8000-000000000007",
+      "number": 7,
+      "name": "Ø10 90° chamfer mill",
+      "type": "chamfer_mill",
+      "material": "carbide",
+      "geometry": { "diameter": 10, "tip_diameter": 0.5, "flute_length": 4.75, "overall_length": 60, "flutes": 4, "tip_angle_deg": 90 },
+      "stickout": 25,
+      "presets": []
+    },
+    {
+      "id": "0c4a0000-0000-4000-8000-000000000008",
+      "number": 8,
+      "name": "M10x1.5 tap",
+      "type": "tap",
+      "material": "HSS-E",
+      "geometry": { "diameter": 10, "flute_length": 20, "overall_length": 90, "flutes": 3, "thread_pitch": 1.5 },
+      "stickout": 50,
+      "presets": []
+    }
+  ]
+}

@@ -1,0 +1,185 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://oxcam.invalid/schemas/workholding.v4.schema.json",
+  "title": "OxCAM workholding template (workholding.json inside a .ocamhold archive), version 4",
+  "description": "A fixture made of STEP parts (stored beside this document as bodies/<sha256>.step, or among a project's models) in shared template coordinates, in millimetres. Each part is carried by the fixed base or by a member that moves along a line within its travel range (linked members follow another member's travel times their ratio, along their own direction). Datums are named points with a direction: picked on a part's face, edge or vertex (moving with the part's member; 'point' and 'direction' are its geometry as modelled), typed (moving with 'member'), offset from another datum along template X, Y, Z or that datum's direction, or the midpoint of two. Holdings say where the stock sits: between two jaw faces (its side on face_a, its bottom grip_depth below the 'seat' datum), on a dovetail (flanks face_a and face_b, its shoulder on the seat, its tenon depth below it), at a seat frame (origin and Z from 'seat', X from 'x_datum'; the stock box point 'anchor' there, per axis 0 = min, 1 = middle, 2 = max), or in a chuck (a bar centred on the 'axis' datum, gripped on its diameter by the jaw face face_a, whose distance from the axis is the radius gripped; its end grip_depth behind the plane of 'seat', the front of the jaws facing out of the chuck; with no member moving face_a, a collet, bars up to grip_range smaller than its bore). 'mount' is the datum the workholding sits on the machine by. Version 1 documents (bodies with jaw roles, one datum frame, an opening range) are migrated when read; version 2 documents are version 3 documents without chucks; version 3 documents are version 4 documents without jaw mounts or jaw sets. Version 4: a chuck may say how jaws go on its master jaws ('jaw_mount': the interface by name, a label a setup matches jaw sets by, and the datum on master jaw 1 where a jaw's seat goes, its direction out of the chuck); its own top jaws ('top_jaw' parts) are left out when a setup puts a jaw set on. A jaw set ('jaw_set': one jaw's parts, copied onto each master jaw) says its interface, whether it is a hard jaw with grip steps or a soft blank to be bored, its front, and its 'options', the ways it goes on (a jaw that goes on either way round is two options, as a vise's holdings are its ways of holding): each a name, the datum that seats on the master jaw (its direction out of the chuck), which way is in towards the chuck's axis, and its steps: a gripping face (its normal says whether it grips an outside or an inside diameter) and the face the work's end stops against. A jaw set has no holdings. An earlier draft of version 4 also wrote a mount's 'pitch' and 'positions' and a set's one 'seat', 'inward' and 'steps': the first two are ignored, the others read as one option named 'Normal'. See docs/design-log/0035-workholding-templates.md.",
+  "type": "object",
+  "required": ["format", "version", "id", "name", "parts", "holdings"],
+  "properties": {
+    "format": { "const": "oxcam.workholding" },
+    "version": { "const": 4 },
+    "units": { "const": "mm" },
+    "id": { "$ref": "#/definitions/uuid" },
+    "name": { "type": "string", "minLength": 1 },
+    "description": { "type": "string" },
+    "parts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "sha256"],
+        "properties": {
+          "id": { "$ref": "#/definitions/uuid" },
+          "name": { "type": "string" },
+          "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "source_path": { "type": "string" },
+          "member": { "type": "string" },
+          "colour": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" },
+          "collides": { "type": "boolean" },
+          "shown": { "type": "boolean" },
+          "top_jaw": { "type": "boolean" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "members": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "direction", "min_travel", "max_travel"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "direction": { "$ref": "#/definitions/vec3" },
+          "min_travel": { "type": "number" },
+          "max_travel": { "type": "number" },
+          "linked_to": { "type": "string" },
+          "ratio": { "type": "number" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "datums": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "kind"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "kind": { "enum": ["picked", "typed", "offset", "midpoint"] },
+          "shape": { "enum": ["plane", "axis", "line", "point"] },
+          "part": { "type": "string" },
+          "type": { "enum": ["face", "edge", "vertex"] },
+          "index": { "type": "integer", "minimum": 0 },
+          "signature": {
+            "type": "object",
+            "required": ["centroid", "direction", "measure"],
+            "properties": {
+              "centroid": { "$ref": "#/definitions/vec3" },
+              "direction": { "$ref": "#/definitions/vec3" },
+              "measure": { "type": "number" }
+            },
+            "additionalProperties": false
+          },
+          "member": { "type": "string" },
+          "point": { "$ref": "#/definitions/vec3" },
+          "direction": { "$ref": "#/definitions/vec3" },
+          "from": { "type": "string" },
+          "to": { "type": "string" },
+          "along": { "enum": ["x", "y", "z", "direction"] },
+          "distance": { "type": "number" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "holdings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "kind"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "kind": { "enum": ["jaws", "dovetail", "seat", "chuck"] },
+          "face_a": { "type": "string" },
+          "face_b": { "type": "string" },
+          "seat": { "type": "string" },
+          "x_datum": { "type": "string" },
+          "axis": { "type": "string" },
+          "grip_range": { "type": "number", "minimum": 0 },
+          "grip_depth": { "type": "number", "minimum": 0 },
+          "depth": { "type": "number", "minimum": 0 },
+          "tenon_width": { "type": "number", "minimum": 0 },
+          "anchor": {
+            "type": "array",
+            "items": { "enum": [0, 1, 2] },
+            "minItems": 3,
+            "maxItems": 3
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "mount": { "type": "string" },
+    "up": { "$ref": "#/definitions/vec3" },
+    "jaw_mount": {
+      "type": "object",
+      "required": ["interface", "seat"],
+      "properties": {
+        "interface": { "type": "string", "minLength": 1 },
+        "seat": { "type": "string", "minLength": 1 },
+        "pitch": { "description": "Ignored: from an earlier draft." },
+        "positions": { "description": "Ignored: from an earlier draft." }
+      },
+      "additionalProperties": false
+    },
+    "jaw_set": {
+      "type": "object",
+      "required": ["interface", "kind"],
+      "anyOf": [{ "required": ["options"] }, { "required": ["seat", "inward", "steps"] }],
+      "properties": {
+        "interface": { "type": "string", "minLength": 1 },
+        "kind": { "enum": ["hard", "soft"] },
+        "front": { "type": "string" },
+        "options": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["name", "seat", "inward", "steps"],
+            "properties": {
+              "name": { "type": "string", "minLength": 1 },
+              "seat": { "type": "string", "minLength": 1 },
+              "inward": { "$ref": "#/definitions/vec3" },
+              "steps": { "$ref": "#/definitions/jawSteps" }
+            },
+            "additionalProperties": false
+          }
+        },
+        "seat": {
+          "description": "An earlier draft's single way on, read as an option named 'Normal'.",
+          "type": "string",
+          "minLength": 1
+        },
+        "inward": { "$ref": "#/definitions/vec3" },
+        "steps": { "$ref": "#/definitions/jawSteps" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "jawSteps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "grip", "stop"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "grip": { "type": "string", "minLength": 1 },
+          "stop": { "type": "string", "minLength": 1 }
+        },
+        "additionalProperties": false
+      }
+    },
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+    },
+    "vec3": {
+      "type": "array",
+      "items": { "type": "number" },
+      "minItems": 3,
+      "maxItems": 3
+    }
+  }
+}

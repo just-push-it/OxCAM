@@ -1,0 +1,63 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "oxcam",
+  "version-semver": "0.1.0",
+  "description": "Clean-room open-source CAM",
+  "license": "GPL-3.0-or-later",
+  "dependencies": [
+    "cli11",
+    "clipper2",
+    "eigen3",
+    "fmt",
+    "json-schema-validator",
+    "miniz",
+    "nlohmann-json",
+    "opencascade",
+    "quickjs-ng",
+    {
+      "name": "tbb",
+      "default-features": false
+    }
+  ],
+  "features": {
+    "tests": {
+      "description": "Unit and golden-file tests",
+      "dependencies": [
+        "catch2"
+      ]
+    },
+    "gui": {
+      "description": "Qt 6 desktop application",
+      "dependencies": [
+        {
+          "name": "qtbase",
+          "default-features": false,
+          "features": [
+            "freetype",
+            "gui",
+            "opengl",
+            "png",
+            "testlib",
+            "widgets",
+            {
+              "name": "fontconfig",
+              "platform": "linux"
+            },
+            {
+              "name": "xcb",
+              "platform": "linux"
+            },
+            {
+              "name": "xcb-xlib",
+              "platform": "linux"
+            },
+            {
+              "name": "xkb",
+              "platform": "linux"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

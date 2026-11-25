@@ -1,0 +1,17 @@
+{
+  "format": "oxcam.machine",
+  "version": 3,
+  "id": "generic-3axis-vmc",
+  "name": "Generic 3-axis vertical machining centre",
+  "vendor": "",
+  "kinematics": "mill3",
+  "axes": [
+    { "name": "X", "min": -400, "max": 400, "max_rate": 30000 },
+    { "name": "Y", "min": -250, "max": 250, "max_rate": 30000 },
+    { "name": "Z", "min": -450, "max": 0, "max_rate": 24000 }
+  ],
+  "spindle": { "min_rpm": 100, "max_rpm": 12000 },
+  "feed": { "max": 10000, "rapid": 24000 },
+  "tool_changer": { "capacity": 24, "change_time": 4 },
+  "work_offsets": 54
+}

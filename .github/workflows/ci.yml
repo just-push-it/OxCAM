@@ -1,0 +1,145 @@
+# SPDX-FileCopyrightText: OxCAM contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.preset }}
+    runs-on: ${{ matrix.os }}
+    env:
+      # Tests run in parallel, one per core of the hosted runners.
+      CTEST_PARALLEL_LEVEL: 4
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: windows-2022, preset: ci-msvc-headless, triplet: x64-windows, python: true }
+          - { os: ubuntu-24.04, preset: ci-linux-gcc-headless, triplet: x64-linux, python: true }
+          - { os: ubuntu-24.04, preset: ci-linux-clang-headless, triplet: x64-linux }
+          - { os: ubuntu-24.04, preset: ci-linux-clang-asan, triplet: x64-linux }
+          - { os: macos-14, preset: ci-macos-clang-headless, triplet: arm64-osx }
+          - { os: windows-2022, preset: ci-msvc-gui, triplet: x64-windows }
+          - { os: ubuntu-24.04, preset: ci-linux-gcc-gui, triplet: x64-linux, test-wrapper: xvfb-run -a }
+          - { os: macos-14, preset: ci-macos-clang-gui, triplet: arm64-osx }
+    env:
+      VCPKG_ROOT: ${{ github.workspace }}/../vcpkg
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/../vcpkg-cache
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build tools (Linux)
+        if: runner.os == 'Linux'
+        # Ninja plus the system packages vcpkg needs for OpenCASCADE and Qt (X11/xcb, GL,
+        # autotools); xvfb provides a display for the GUI smoke test.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build autoconf autoconf-archive automake libtool \
+            pkg-config bison python3-venv libx11-dev libxext-dev libxi-dev libxrandr-dev \
+            libxcursor-dev libxinerama-dev libxrender-dev libx11-xcb-dev '^libxcb.*-dev' \
+            libxkbcommon-dev libxkbcommon-x11-dev libgl1-mesa-dev libglu1-mesa-dev \
+            libegl1-mesa-dev libfontconfig1-dev xvfb
+
+      - name: Install build tools (macOS)
+        if: runner.os == 'macOS'
+        run: brew install ninja
+
+      - name: Set up MSVC environment
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Bootstrap vcpkg
+        shell: bash
+        run: |
+          git clone --depth 1 https://github.com/microsoft/vcpkg "$VCPKG_ROOT"
+          mkdir -p "$VCPKG_DEFAULT_BINARY_CACHE"
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            "$VCPKG_ROOT/bootstrap-vcpkg.bat" -disableMetrics
+          else
+            "$VCPKG_ROOT/bootstrap-vcpkg.sh" -disableMetrics
+          fi
+
+      - name: Restore vcpkg binary cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: vcpkg-${{ matrix.triplet }}-${{ matrix.preset }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}
+          restore-keys: |
+            vcpkg-${{ matrix.triplet }}-${{ matrix.preset }}-
+            vcpkg-${{ matrix.triplet }}-
+
+      - name: Set up Python for the bindings
+        if: matrix.python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install nanobind
+        if: matrix.python
+        run: python -m pip install "nanobind==2.13.0"
+
+      - name: Configure
+        shell: bash
+        run: |
+          extra=""
+          if [ "${{ matrix.python }}" = "true" ]; then
+            extra="-DOCAM_BUILD_PYTHON=ON -DPython_EXECUTABLE=$(python -c 'import sys; print(sys.executable)')"
+          fi
+          cmake --preset ${{ matrix.preset }} $extra
+
+      - name: Build
+        run: cmake --build --preset ${{ matrix.preset }}
+
+      - name: Test
+        run: ${{ matrix.test-wrapper }} ctest --preset ${{ matrix.preset }}
+
+      - name: Upload vcpkg logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vcpkg-logs-${{ matrix.preset }}
+          path: |
+            ${{ env.VCPKG_ROOT }}/buildtrees/**/*.log
+            build/**/vcpkg-manifest-install.log
+          if-no-files-found: ignore
+
+  lint:
+    name: lint (format, REUSE, DCO)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: clang-format
+        run: |
+          files=$(git ls-files '*.cpp' '*.hpp' '*.h')
+          clang-format-18 --version
+          clang-format-18 --dry-run --Werror $files
+
+      - name: REUSE compliance
+        uses: fsfe/reuse-action@v5
+
+      - name: DCO sign-off
+        if: github.event_name == 'pull_request'
+        run: |
+          missing=0
+          for sha in $(git rev-list --no-merges ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}); do
+            if ! git show -s --format=%B "$sha" | grep -q '^Signed-off-by: '; then
+              echo "::error::Commit $sha is missing a Signed-off-by line (use git commit -s)"
+              missing=1
+            fi
+          done
+          exit $missing

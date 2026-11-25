@@ -1,0 +1,45 @@
+{
+  "format": "oxcam.machine",
+  "version": 12,
+  "kinematics": "lathe2",
+  "orientation": { "up": "+Y", "front": "-X" },
+  "vendor": "",
+  "spindle": {
+    "min_rpm": 50,
+    "max_rpm": 4000
+  },
+  "feed": {
+    "max": 10000,
+    "rapid": 24000
+  },
+  "tool_changer": {
+    "capacity": 12,
+    "change_time": 1
+  },
+  "work_offsets": 6,
+  "live_tool": {
+    "max_rpm": 6000
+  },
+  "id": "generic-lathe-live-y",
+  "name": "Generic CNC lathe with live tooling and a Y axis (X radius, Y, Z, C)",
+  "axes": [
+    {
+      "name": "X",
+      "min": -5,
+      "max": 160,
+      "max_rate": 20000
+    },
+    {
+      "name": "Y",
+      "min": -50,
+      "max": 50,
+      "max_rate": 10000
+    },
+    {
+      "name": "Z",
+      "min": -600,
+      "max": 10,
+      "max_rate": 24000
+    }
+  ]
+}

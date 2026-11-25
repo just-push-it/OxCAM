@@ -1,0 +1,141 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://oxcam.invalid/schemas/machine.v4.schema.json",
+  "title": "OxCAM machine definition, version 4",
+  "description": "Lengths in mm, rates in mm/min, angles in degrees. Rotary axis limits are in degrees. Kinematics: 3-axis mills, 4-axis mills with a rotary table about X, 5-axis table-table, head-table and head-head machines, and 2-axis lathes; mill-turn and Swiss machines extend the axis list and kinematics type. Components are boxes and cylinders for machine collision checks, in the frame of what carries them (head, table or cradle). The optional model (version 2; parts shown or hidden in the view since version 3; version 4 dropped the table's carrier and origin: where the work sits is each setup's placement) is the machine's kinematic tree and mesh parts for the simulation: axes with their parent axis, direction and pivot, the spindle's carrier and gauge point at machine zero, and parts whose meshes are binary STL files named <mesh>.stl in the folder <machine file name>.meshes next to the machine file (in projects: machines/<mesh>.stl in the archive).",
+  "type": "object",
+  "required": ["format", "version", "id", "name", "kinematics", "axes", "spindle", "feed"],
+  "properties": {
+    "format": { "const": "oxcam.machine" },
+    "version": { "const": 4 },
+    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$" },
+    "name": { "type": "string" },
+    "vendor": { "type": "string" },
+    "kinematics": {
+      "enum": ["mill3", "mill4_a", "mill5_table_ac", "mill5_table_bc", "mill5_head_table_bc",
+               "mill5_head_bc", "lathe2"]
+    },
+    "axes": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["name", "min", "max"],
+        "properties": {
+          "name": { "enum": ["X", "Y", "Z", "A", "B", "C"] },
+          "min": { "type": "number" },
+          "max": { "type": "number" },
+          "max_rate": { "type": "number", "exclusiveMinimum": 0 }
+        },
+        "additionalProperties": false
+      }
+    },
+    "spindle": {
+      "type": "object",
+      "required": ["max_rpm"],
+      "properties": {
+        "min_rpm": { "type": "number", "minimum": 0 },
+        "max_rpm": { "type": "number", "exclusiveMinimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "feed": {
+      "type": "object",
+      "required": ["max", "rapid"],
+      "properties": {
+        "max": { "type": "number", "exclusiveMinimum": 0 },
+        "rapid": { "type": "number", "exclusiveMinimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "tool_changer": {
+      "type": "object",
+      "properties": {
+        "capacity": { "type": "integer", "minimum": 0 },
+        "change_time": { "type": "number", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "work_offsets": { "type": "integer", "minimum": 1 },
+    "pivot_length": { "type": "number", "minimum": 0 },
+    "components": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "attach"],
+        "properties": {
+          "name": { "type": "string" },
+          "attach": { "enum": ["head", "table", "cradle"] },
+          "box": {
+            "type": "object",
+            "required": ["min", "max"],
+            "properties": { "min": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 }, "max": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 } },
+            "additionalProperties": false
+          },
+          "cylinder": {
+            "type": "object",
+            "required": ["base", "axis", "radius", "length"],
+            "properties": {
+              "base": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+              "axis": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+              "radius": { "type": "number", "exclusiveMinimum": 0 },
+              "length": { "type": "number", "exclusiveMinimum": 0 }
+            },
+            "additionalProperties": false
+          }
+        },
+        "oneOf": [{ "required": ["box"] }, { "required": ["cylinder"] }],
+        "additionalProperties": false
+      }
+    },
+    "model": {
+      "type": "object",
+      "required": ["axes", "spindle"],
+      "properties": {
+        "axes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "direction"],
+            "properties": {
+              "name": { "enum": ["X", "Y", "Z", "A", "B", "C"] },
+              "parent": { "enum": ["X", "Y", "Z", "A", "B", "C"] },
+              "direction": { "$ref": "#/definitions/vec3" },
+              "pivot": { "$ref": "#/definitions/vec3" }
+            },
+            "additionalProperties": false
+          }
+        },
+        "spindle": {
+          "type": "object",
+          "required": ["point"],
+          "properties": { "carrier": { "enum": ["X", "Y", "Z", "A", "B", "C"] }, "point": { "$ref": "#/definitions/vec3" } },
+          "additionalProperties": false
+        },
+        "parts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "mesh"],
+            "properties": {
+              "name": { "type": "string" },
+              "carrier": { "enum": ["X", "Y", "Z", "A", "B", "C"] },
+              "mesh": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+              "offset": { "$ref": "#/definitions/vec3" },
+              "rotation": { "$ref": "#/definitions/vec3" },
+              "colour": { "type": "string", "pattern": "^#[0-9a-f]{6}$" },
+              "collides": { "type": "boolean" },
+              "shown": { "type": "boolean" }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "vec3": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 }
+  }
+}

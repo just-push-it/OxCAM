@@ -1,0 +1,17 @@
+{
+  "format": "oxcam.machine",
+  "version": 12,
+  "id": "generic-2axis-lathe",
+  "name": "Generic 2-axis CNC lathe (X radius, Z)",
+  "vendor": "",
+  "kinematics": "lathe2",
+  "orientation": { "up": "+Y", "front": "-X" },
+  "axes": [
+    { "name": "X", "min": -5, "max": 160, "max_rate": 20000 },
+    { "name": "Z", "min": -600, "max": 10, "max_rate": 24000 }
+  ],
+  "spindle": { "min_rpm": 50, "max_rpm": 4000 },
+  "feed": { "max": 10000, "rapid": 24000 },
+  "tool_changer": { "capacity": 12, "change_time": 1 },
+  "work_offsets": 6
+}

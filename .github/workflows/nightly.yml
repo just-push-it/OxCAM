@@ -1,0 +1,78 @@
+# SPDX-FileCopyrightText: OxCAM contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Nightly coverage-guided fuzzing of every file loader. Crashing inputs are uploaded as
+# artifacts; add them to tests as regression cases when fixing.
+
+name: Nightly
+
+on:
+  schedule:
+    - cron: "0 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fuzz:
+    runs-on: ubuntu-24.04
+    env:
+      VCPKG_ROOT: ${{ github.workspace }}/../vcpkg
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/../vcpkg-cache
+      FUZZ_SECONDS: 600
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build autoconf autoconf-archive automake libtool \
+            pkg-config bison libx11-dev libxext-dev libxi-dev libgl1-mesa-dev \
+            libfontconfig1-dev unzip
+
+      - name: Bootstrap vcpkg
+        run: |
+          git clone --depth 1 https://github.com/microsoft/vcpkg "$VCPKG_ROOT"
+          mkdir -p "$VCPKG_DEFAULT_BINARY_CACHE"
+          "$VCPKG_ROOT/bootstrap-vcpkg.sh" -disableMetrics
+
+      - name: Restore vcpkg binary cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: vcpkg-x64-linux-linux-clang-fuzz-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}
+          restore-keys: |
+            vcpkg-x64-linux-linux-clang-fuzz-
+            vcpkg-x64-linux-
+
+      - name: Configure and build
+        run: |
+          cmake --preset linux-clang-fuzz
+          cmake --build --preset linux-clang-fuzz
+
+      - name: Prepare seed corpora
+        run: |
+          mkdir -p corpus/toollib corpus/project corpus/archive crashes
+          cp data/tool-libraries/*.ocamtools corpus/toollib/
+          cp build/linux-clang-fuzz/fixtures/sample_project.ocam corpus/archive/
+          unzip -p build/linux-clang-fuzz/fixtures/sample_project.ocam project.json > corpus/project/project.json
+
+      - name: Fuzz
+        run: |
+          status=0
+          for target in toollib project archive; do
+            echo "::group::fuzz_$target"
+            build/linux-clang-fuzz/bin/fuzz_$target corpus/$target \
+              -max_total_time=$FUZZ_SECONDS -artifact_prefix=crashes/$target- || status=1
+            echo "::endgroup::"
+          done
+          exit $status
+
+      - name: Upload crashing inputs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-crashes
+          path: crashes/
+          if-no-files-found: ignore

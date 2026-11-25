@@ -1,0 +1,30 @@
+{
+  "format": "oxcam.machine",
+  "version": 3,
+  "id": "generic-4axis-vmc",
+  "name": "Generic 4-axis vertical machining centre (rotary table A about X)",
+  "vendor": "",
+  "kinematics": "mill4_a",
+  "axes": [
+    { "name": "X", "min": -400, "max": 400, "max_rate": 30000 },
+    { "name": "Y", "min": -250, "max": 250, "max_rate": 30000 },
+    { "name": "Z", "min": -500, "max": 0, "max_rate": 24000 },
+    { "name": "A", "min": -9999, "max": 9999, "max_rate": 18000 }
+  ],
+  "spindle": { "min_rpm": 100, "max_rpm": 12000 },
+  "feed": { "max": 10000, "rapid": 30000 },
+  "tool_changer": { "capacity": 24, "change_time": 4 },
+  "work_offsets": 54,
+  "components": [
+    { "name": "spindle nose", "attach": "head",
+      "cylinder": { "base": [0, 0, 0], "axis": [0, 0, 1], "radius": 50, "length": 120 } },
+    { "name": "spindle housing", "attach": "head",
+      "box": { "min": [-120, -120, 120], "max": [120, 160, 500] } },
+    { "name": "rotary table housing", "attach": "cradle",
+      "box": { "min": [-330, -130, -170], "max": [-230, 130, 120] } },
+    { "name": "chuck", "attach": "table",
+      "cylinder": { "base": [-230, 0, 0], "axis": [1, 0, 0], "radius": 70, "length": 50 } },
+    { "name": "tailstock", "attach": "cradle",
+      "box": { "min": [260, -60, -170], "max": [340, 60, 50] } }
+  ]
+}

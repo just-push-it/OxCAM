@@ -1,0 +1,108 @@
+{
+  "format": "oxcam.machine",
+  "version": 16,
+  "kinematics": "lathe2",
+  "orientation": { "up": "+Y", "front": "-X" },
+  "vendor": "",
+  "spindle": {
+    "min_rpm": 50,
+    "max_rpm": 4000
+  },
+  "feed": {
+    "max": 10000,
+    "rapid": 24000
+  },
+  "tool_changer": {
+    "capacity": 12,
+    "change_time": 1
+  },
+  "work_offsets": 6,
+  "live_tool": {
+    "max_rpm": 6000
+  },
+  "id": "generic-lathe-sub",
+  "name": "Generic CNC lathe with its turret, a sub-spindle and enclosure",
+  "axes": [
+    {
+      "name": "X",
+      "min": -330,
+      "max": 0,
+      "max_rate": 20000
+    },
+    {
+      "name": "Y",
+      "min": -50,
+      "max": 50,
+      "max_rate": 10000
+    },
+    {
+      "name": "Z",
+      "min": -750,
+      "max": 0,
+      "max_rate": 24000
+    },
+    {
+      "name": "Z2",
+      "min": -1000,
+      "max": 0,
+      "max_rate": 20000
+    }
+  ],
+  "lathe": {
+    "turret": {
+      "centre": [
+        420,
+        0,
+        760
+      ],
+      "axis": [
+        0,
+        0,
+        1
+      ],
+      "diameter": 300,
+      "width": 100,
+      "radial_reach": 190,
+      "axial_pitch": 110,
+      "axial_reach": 70,
+      "index_at_home": false,
+      "block_radius": 150,
+      "block_along": -30,
+      "block_mounts": ["Generic bolt-on (placeholder)"]
+    },
+    "clearance": 1,
+    "headstock": {
+      "diameter": 340,
+      "length": 300
+    },
+    "chuck": {
+      "diameter": 210,
+      "length": 90,
+      "grip": 25
+    },
+    "enclosure": {
+      "min": [
+        -250,
+        -320,
+        -20
+      ],
+      "max": [
+        700,
+        320,
+        1400
+      ],
+      "wall": 10
+    },
+    "sub_spindle": {
+      "nose": 1080,
+      "diameter": 240,
+      "length": 300,
+      "chuck_diameter": 170,
+      "chuck_length": 75,
+      "grip": 20,
+      "work_z2": -250,
+      "min_rpm": 50,
+      "max_rpm": 5000
+    }
+  }
+}
