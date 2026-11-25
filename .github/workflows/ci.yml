@@ -22,12 +22,13 @@ jobs:
     env:
       # Tests run in parallel, one per core of the hosted runners.
       CTEST_PARALLEL_LEVEL: 4
-      VCPKG_ROOT: ${{ github.workspace }}/../vcpkg
-      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/../vcpkg-cache
+      VCPKG_ROOT: ${{ github.workspace }}/vcpkg
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/vcpkg-cache
       # vcpkg removed the x-gha provider. The files provider plus actions/cache is the
       # supported way to reuse OpenCASCADE, Qt, and the other ports between runs.
-      VCPKG_BINARY_SOURCES: "clear;files,${{ github.workspace }}/../vcpkg-cache,readwrite"
-      SCCACHE_DIR: ${{ github.workspace }}/../sccache
+      # Paths stay inside the workspace: upload-artifact rejects '..'.
+      VCPKG_BINARY_SOURCES: "clear;files,${{ github.workspace }}/vcpkg-cache,readwrite"
+      SCCACHE_DIR: ${{ github.workspace }}/sccache
       SCCACHE_CACHE_SIZE: 2G
     strategy:
       fail-fast: false
@@ -92,7 +93,7 @@ jobs:
         run: |
           {
             echo "VCPKG_ROOT<<EOF"
-            echo "${{ github.workspace }}/../vcpkg"
+            echo "${{ github.workspace }}/vcpkg"
             echo "EOF"
           } >> "$GITHUB_ENV"
 
@@ -140,10 +141,15 @@ jobs:
             Windows) asset="sccache-v${version}-x86_64-pc-windows-msvc.zip" ;;
           esac
           url="https://github.com/mozilla/sccache/releases/download/v${version}/${asset}"
-          mkdir -p "$RUNNER_TEMP/sccache-extract" "$HOME/.local/bin"
-          curl -fsSL "$url" -o "$RUNNER_TEMP/sccache-asset"
-          tar -xf "$RUNNER_TEMP/sccache-asset" -C "$RUNNER_TEMP/sccache-extract"
-          bin=$(find "$RUNNER_TEMP/sccache-extract" -type f \( -name sccache -o -name sccache.exe \) | head -1)
+          # Git's tar treats "D:" in a Windows temp path as a remote host.
+          tmp="$RUNNER_TEMP"
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            tmp=$(cygpath -u "$RUNNER_TEMP")
+          fi
+          mkdir -p "$tmp/sccache-extract" "$HOME/.local/bin"
+          curl -fsSL "$url" -o "$tmp/sccache-asset"
+          tar -xf "$tmp/sccache-asset" -C "$tmp/sccache-extract"
+          bin=$(find "$tmp/sccache-extract" -type f \( -name sccache -o -name sccache.exe \) | head -1)
           if [ "$RUNNER_OS" = "Windows" ]; then
             cp "$bin" "$HOME/.local/bin/sccache.exe"
             cygpath -w "$HOME/.local/bin" >> "$GITHUB_PATH"
@@ -179,6 +185,7 @@ jobs:
 
       - name: sccache stats
         if: ${{ !cancelled() }}
+        shell: bash
         run: sccache --show-stats
 
       - name: Test

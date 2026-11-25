@@ -18,10 +18,10 @@ jobs:
   fuzz:
     runs-on: ubuntu-24.04
     env:
-      VCPKG_ROOT: ${{ github.workspace }}/../vcpkg
-      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/../vcpkg-cache
+      VCPKG_ROOT: ${{ github.workspace }}/vcpkg
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/vcpkg-cache
       # Same files cache and key as the CI headless Linux jobs, so a CI run fills this.
-      VCPKG_BINARY_SOURCES: "clear;files,${{ github.workspace }}/../vcpkg-cache,readwrite"
+      VCPKG_BINARY_SOURCES: "clear;files,${{ github.workspace }}/vcpkg-cache,readwrite"
       FUZZ_SECONDS: 600
     steps:
       - uses: actions/checkout@v7
