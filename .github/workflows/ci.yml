@@ -207,6 +207,10 @@ jobs:
         run: sccache --show-stats
 
       - name: Test
+        env:
+          # OpenCASCADE is not built with ASan. Its process-lifetime tables are reported as
+          # leaks after a test has already passed. Ignored by jobs that are not sanitized.
+          LSAN_OPTIONS: suppressions=${{ github.workspace }}/tests/support/lsan.supp
         run: ${{ matrix.test-wrapper }} ctest --preset ${{ matrix.preset }}
 
       - name: Upload vcpkg logs on failure
