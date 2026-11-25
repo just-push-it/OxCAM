@@ -635,9 +635,9 @@ const LatheFitting* Project::findFitting(const Uuid& wanted) const {
 std::vector<std::string> Project::validate() const {
     std::vector<std::string> issues;
     std::set<Uuid> ids;
-    auto unique = [&](const Uuid& id, const std::string& what) {
-        if (!ids.insert(id).second) {
-            issues.push_back(what + ": duplicate id " + id.toString());
+    auto unique = [&](const Uuid& itemId, const std::string& what) {
+        if (!ids.insert(itemId).second) {
+            issues.push_back(what + ": duplicate id " + itemId.toString());
         }
     };
 
