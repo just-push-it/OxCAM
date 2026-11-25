@@ -18,7 +18,11 @@ function(ocam_set_warnings target)
                      # Aggregates rely on default member initializers for trailing fields.
                      -Wno-missing-field-initializers)
         if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-            list(APPEND warnings -Wduplicated-cond -Wlogical-op)
+            list(APPEND warnings -Wduplicated-cond -Wlogical-op
+                 # Middle-end warning: it fires inside Eigen (a system header) once the
+                 # outer product is inlined, and -Werror would fail the build on a false
+                 # positive. AxisFit's covariance update is the case CI hit.
+                 -Wno-error=null-dereference)
         endif()
         set(werror -Werror)
     endif()

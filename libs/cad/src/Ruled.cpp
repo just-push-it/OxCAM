@@ -46,8 +46,8 @@ struct Line {
 class Sampler {
 public:
     Sampler(const TopoDS_Face& face, const Transform3& toFrame)
-        : face_(face), surf_(face, true), classifier_(face, Precision::PConfusion()),
-          toFrame_(toFrame), reversed_(face.Orientation() == TopAbs_REVERSED) {}
+        : surf_(face, true), classifier_(face, Precision::PConfusion()), toFrame_(toFrame),
+          reversed_(face.Orientation() == TopAbs_REVERSED) {}
 
     const BRepAdaptor_Surface& surface() const { return surf_; }
 
@@ -151,7 +151,6 @@ public:
     }
 
 private:
-    const TopoDS_Face& face_;
     BRepAdaptor_Surface surf_;
     BRepTopAdaptor_FClass2d classifier_;
     Transform3 toFrame_;
