@@ -24,18 +24,25 @@ jobs:
       CTEST_PARALLEL_LEVEL: 4
       VCPKG_ROOT: ${{ github.workspace }}/../vcpkg
       VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/../vcpkg-cache
+      # vcpkg removed the x-gha provider. The files provider plus actions/cache is the
+      # supported way to reuse OpenCASCADE, Qt, and the other ports between runs.
+      VCPKG_BINARY_SOURCES: "clear;files,${{ github.workspace }}/../vcpkg-cache,readwrite"
+      SCCACHE_DIR: ${{ github.workspace }}/../sccache
+      SCCACHE_CACHE_SIZE: 2G
     strategy:
       fail-fast: false
       matrix:
         include:
-          - { os: windows-2022, preset: ci-msvc-headless, triplet: x64-windows, python: true }
-          - { os: ubuntu-24.04, preset: ci-linux-gcc-headless, triplet: x64-linux, python: true }
-          - { os: ubuntu-24.04, preset: ci-linux-clang-headless, triplet: x64-linux }
-          - { os: ubuntu-24.04, preset: ci-linux-clang-asan, triplet: x64-linux }
-          - { os: macos-15, preset: ci-macos-clang-headless, triplet: arm64-osx }
-          - { os: windows-2022, preset: ci-msvc-gui, triplet: x64-windows }
-          - { os: ubuntu-24.04, preset: ci-linux-gcc-gui, triplet: x64-linux, test-wrapper: xvfb-run -a }
-          - { os: macos-15, preset: ci-macos-clang-gui, triplet: arm64-osx }
+          # deps distinguishes the vcpkg feature set (headless vs Qt). Jobs that install
+          # the same features share one binary cache for that OS and triplet.
+          - { os: windows-2022, preset: ci-msvc-headless, triplet: x64-windows, python: true, deps: headless }
+          - { os: ubuntu-24.04, preset: ci-linux-gcc-headless, triplet: x64-linux, python: true, deps: headless }
+          - { os: ubuntu-24.04, preset: ci-linux-clang-headless, triplet: x64-linux, deps: headless }
+          - { os: ubuntu-24.04, preset: ci-linux-clang-asan, triplet: x64-linux, deps: headless }
+          - { os: macos-15, preset: ci-macos-clang-headless, triplet: arm64-osx, deps: headless }
+          - { os: windows-2022, preset: ci-msvc-gui, triplet: x64-windows, deps: gui }
+          - { os: ubuntu-24.04, preset: ci-linux-gcc-gui, triplet: x64-linux, test-wrapper: xvfb-run -a, deps: gui }
+          - { os: macos-15, preset: ci-macos-clang-gui, triplet: arm64-osx, deps: gui }
     steps:
       - uses: actions/checkout@v7
 
@@ -101,13 +108,52 @@ jobs:
           fi
 
       - name: Restore vcpkg binary cache
+        id: vcpkg-cache
         uses: actions/cache@v6
         with:
           path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
-          key: vcpkg-${{ matrix.triplet }}-${{ matrix.preset }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}
+          key: vcpkg-${{ runner.os }}-${{ matrix.triplet }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}-${{ matrix.deps }}
           restore-keys: |
-            vcpkg-${{ matrix.triplet }}-${{ matrix.preset }}-
-            vcpkg-${{ matrix.triplet }}-
+            vcpkg-${{ runner.os }}-${{ matrix.triplet }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}-
+            vcpkg-${{ runner.os }}-${{ matrix.triplet }}-
+
+      - name: Record vcpkg cache result
+        run: echo "vcpkg binary cache exact hit=${{ steps.vcpkg-cache.outputs.cache-hit }}"
+
+      - name: Restore sccache
+        id: sccache-cache
+        uses: actions/cache@v6
+        with:
+          path: ${{ env.SCCACHE_DIR }}
+          key: sccache-${{ runner.os }}-${{ matrix.preset }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}
+          restore-keys: |
+            sccache-${{ runner.os }}-${{ matrix.preset }}-
+
+      - name: Install sccache
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=0.20.1
+          case "$RUNNER_OS" in
+            Linux) asset="sccache-v${version}-x86_64-unknown-linux-musl.tar.gz" ;;
+            macOS) asset="sccache-v${version}-aarch64-apple-darwin.tar.gz" ;;
+            Windows) asset="sccache-v${version}-x86_64-pc-windows-msvc.zip" ;;
+          esac
+          url="https://github.com/mozilla/sccache/releases/download/v${version}/${asset}"
+          mkdir -p "$RUNNER_TEMP/sccache-extract" "$HOME/.local/bin"
+          curl -fsSL "$url" -o "$RUNNER_TEMP/sccache-asset"
+          tar -xf "$RUNNER_TEMP/sccache-asset" -C "$RUNNER_TEMP/sccache-extract"
+          bin=$(find "$RUNNER_TEMP/sccache-extract" -type f \( -name sccache -o -name sccache.exe \) | head -1)
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            cp "$bin" "$HOME/.local/bin/sccache.exe"
+            cygpath -w "$HOME/.local/bin" >> "$GITHUB_PATH"
+            "$HOME/.local/bin/sccache.exe" --version
+          else
+            cp "$bin" "$HOME/.local/bin/sccache"
+            chmod +x "$HOME/.local/bin/sccache"
+            echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+            "$HOME/.local/bin/sccache" --version
+          fi
 
       - name: Set up Python for the bindings
         if: matrix.python
@@ -122,14 +168,18 @@ jobs:
       - name: Configure
         shell: bash
         run: |
-          extra=""
+          extra="-DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache"
           if [ "${{ matrix.python }}" = "true" ]; then
-            extra="-DOCAM_BUILD_PYTHON=ON -DPython_EXECUTABLE=$(python -c 'import sys; print(sys.executable)')"
+            extra="$extra -DOCAM_BUILD_PYTHON=ON -DPython_EXECUTABLE=$(python -c 'import sys; print(sys.executable)')"
           fi
           cmake --preset ${{ matrix.preset }} $extra
 
       - name: Build
         run: cmake --build --preset ${{ matrix.preset }}
+
+      - name: sccache stats
+        if: ${{ !cancelled() }}
+        run: sccache --show-stats
 
       - name: Test
         run: ${{ matrix.test-wrapper }} ctest --preset ${{ matrix.preset }}

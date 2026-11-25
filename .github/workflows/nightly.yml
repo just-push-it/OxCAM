@@ -20,6 +20,8 @@ jobs:
     env:
       VCPKG_ROOT: ${{ github.workspace }}/../vcpkg
       VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/../vcpkg-cache
+      # Same files cache and key as the CI headless Linux jobs, so a CI run fills this.
+      VCPKG_BINARY_SOURCES: "clear;files,${{ github.workspace }}/../vcpkg-cache,readwrite"
       FUZZ_SECONDS: 600
     steps:
       - uses: actions/checkout@v7
@@ -41,10 +43,10 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
-          key: vcpkg-x64-linux-linux-clang-fuzz-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}
+          key: vcpkg-Linux-x64-linux-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}-headless
           restore-keys: |
-            vcpkg-x64-linux-linux-clang-fuzz-
-            vcpkg-x64-linux-
+            vcpkg-Linux-x64-linux-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}-
+            vcpkg-Linux-x64-linux-
 
       - name: Configure and build
         run: |
