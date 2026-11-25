@@ -8,12 +8,12 @@
 #include "ocam/geom3d/Stl.hpp"
 
 #include <ocam/foundation/Error.hpp>
+#include <ocam/foundation/Parse.hpp>
 
 #include <fmt/format.h>
 
 #include <bit>
 #include <cctype>
-#include <charconv>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
@@ -97,8 +97,7 @@ Mesh readAscii(std::string_view text, std::string_view sourceName) {
         for (int k = 0; k < 3; ++k) {
             const std::string_view n = word(text, pos);
             double d = 0.0;
-            const auto [end, ec] = std::from_chars(n.data(), n.data() + n.size(), d);
-            if (ec != std::errc() || end != n.data() + n.size() || !std::isfinite(d)) {
+            if (!parseFiniteDouble(n, d)) {
                 throw fail("a vertex coordinate is not a number");
             }
             v[k] = d;

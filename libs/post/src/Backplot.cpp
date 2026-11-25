@@ -6,13 +6,13 @@
 #include "ocam/post/Post.hpp"
 
 #include <ocam/foundation/Error.hpp>
+#include <ocam/foundation/Parse.hpp>
 #include <ocam/machine/Kinematics.hpp>
 
 #include <fmt/format.h>
 
 #include <algorithm>
 #include <cctype>
-#include <charconv>
 #include <cmath>
 #include <limits>
 #include <map>
@@ -66,8 +66,7 @@ std::vector<Word> tokenize(std::string_view line, int lineNo) {
             number.push_back('0');
         }
         double value = 0.0;
-        const auto res = std::from_chars(number.data(), number.data() + number.size(), value);
-        if (res.ec != std::errc() || res.ptr != number.data() + number.size()) {
+        if (!parseFiniteDouble(number, value)) {
             throw Error(ErrorCode::Parse,
                         fmt::format("line {}: invalid number '{}'", lineNo, number));
         }
