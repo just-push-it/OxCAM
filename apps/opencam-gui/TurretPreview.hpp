@@ -14,7 +14,6 @@
 #include <ocam/machine/Machine.hpp>
 
 #include <QWidget>
-
 #include <cstdint>
 #include <map>
 #include <memory>
@@ -98,7 +97,7 @@ private:
     machine::MachineModel model_;
     std::shared_ptr<std::vector<machine::ModelPart>> parts_;
     std::vector<int> stations_; ///< Per part: its station, 0 for none.
-    std::size_t toolsFrom_ = 0;  ///< The tools' parts, after the blocks'.
+    std::size_t toolsFrom_ = 0; ///< The tools' parts, after the blocks'.
     /// Whether a part is drawn highlighted: the chosen station's block.
     bool highlighted(std::size_t part) const;
     /// Whether a part is drawn: shown by default, near the work unless the whole machine is, and

@@ -52,8 +52,9 @@ struct MillTurn {
         doc.modify("machine", [&](Project& p) { p.setups.front().machine = id; });
     }
     void axes(std::size_t k, const char* value) {
-        doc.modify("axes",
-                   [&](Project& p) { p.setups.front().operations[k].parameters["live_axes"] = value; });
+        doc.modify("axes", [&](Project& p) {
+            p.setups.front().operations[k].parameters["live_axes"] = value;
+        });
     }
     PostOutput post(const char* id, const Json& options = Json::object()) {
         const machine::Machine& m = machineFor(doc.project(), setup());
@@ -331,7 +332,8 @@ TEST_CASE("an external thread on a stud across the part, C held still",
     CHECK_THROWS_WITH(generate(), ContainsSubstring("Live tool axes"));
 }
 
-TEST_CASE("a live tap after milling, which only the simulation can check", "[document][lathe][live][mill]") {
+TEST_CASE("a live tap after milling, which only the simulation can check",
+          "[document][lathe][live][mill]") {
     MillTurn f;
     constexpr std::size_t kTapDrill = 6, kTap = 7;
     REQUIRE(f.setup().operations[kTap].type == "tap");
@@ -360,8 +362,8 @@ TEST_CASE("a live tool's milling in the program", "[document][lathe][live][mill]
         const auto out = f.post("haas-lathe");
         INFO((out.errors.empty() ? std::string() : out.errors.front()));
         REQUIRE(out.ok());
-        for (const char* word : {"G112", "G113", "G17", "G18", "M154", "M155", "M133 P", "M135",
-                                 "G18 G95 C"}) {
+        for (const char* word :
+             {"G112", "G113", "G17", "G18", "M154", "M155", "M133 P", "M135", "G18 G95 C"}) {
             INFO(word);
             CHECK_THAT(out.gcode, ContainsSubstring(word));
         }
@@ -659,8 +661,8 @@ TEST_CASE("wrapping a pocket around a lathe's diameter", "[document][lathe][live
             CHECK(op.collisions.empty());
         }
         const double r = kDiameter / 2.0;
-        const double slot = (r * r - (r - kSlotDepth) * (r - kSlotDepth)) / 2.0 * kSlotAngle *
-                            (kSlotZ1 - kSlotZ0);
+        const double slot =
+            (r * r - (r - kSlotDepth) * (r - kSlotDepth)) / 2.0 * kSlotAngle * (kSlotZ1 - kSlotZ0);
         // Less only the corners a round tool leaves.
         CHECK(sim.operations[Wrapped::kSlot].removedVolume == Catch::Approx(slot).epsilon(0.05));
         REQUIRE(sim.comparison);
@@ -717,13 +719,15 @@ TEST_CASE("wrapping a pocket around a lathe's diameter", "[document][lathe][live
             CHECK(elsewhere == 0);
         }
     }
-    SECTION("Haas: G107 on the floor's radius, Y a length, the feed on the page, the back-plot agrees") {
+    SECTION("Haas: G107 on the floor's radius, Y a length, the feed on the page, the back-plot "
+            "agrees") {
         const PostOutput out = f.post("haas-lathe");
         INFO((out.errors.empty() ? std::string() : out.errors.front()));
         REQUIRE(out.ok());
         INFO(out.gcode);
         CHECK_THAT(out.gcode, ContainsSubstring("G19"));
-        CHECK_THAT(out.gcode, ContainsSubstring(fmt::format("G107 Y0 C0 R{:.0f}.", kDiameter / 2.0 - kSlotDepth)));
+        CHECK_THAT(out.gcode, ContainsSubstring(fmt::format("G107 Y0 C0 R{:.0f}.",
+                                                            kDiameter / 2.0 - kSlotDepth)));
         CHECK_THAT(out.gcode, ContainsSubstring("M154"));
         CHECK_THAT(out.gcode, ContainsSubstring("M133 P"));
         for (const toolpath::Move& m : tp.moves) {
@@ -748,7 +752,8 @@ TEST_CASE("wrapping a pocket around a lathe's diameter", "[document][lathe][live
         INFO((out.errors.empty() ? std::string() : out.errors.front()));
         REQUIRE(out.ok());
         INFO(out.gcode);
-        CHECK_THAT(out.gcode, ContainsSubstring(fmt::format("G7.1 C{:.0f}.", kDiameter / 2.0 - kSlotDepth)));
+        CHECK_THAT(out.gcode,
+                   ContainsSubstring(fmt::format("G7.1 C{:.0f}.", kDiameter / 2.0 - kSlotDepth)));
         CHECK_THAT(out.gcode, ContainsSubstring("G7.1 C0"));
         CHECK_THAT(out.gcode, !ContainsSubstring("G107"));
         double deviation = 0.0;

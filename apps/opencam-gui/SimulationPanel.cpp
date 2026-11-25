@@ -485,7 +485,9 @@ SimulationPanel::SimulationPanel(OcctView* view, SnapshotFn snapshot, ToolpathsF
         QSettings().value(QStringLiteral("simulationMachineFixed"), true).toBool());
     showEnclosure_ = new QCheckBox(tr("Enclosure"), this);
     showEnclosure_->setObjectName(QStringLiteral("simulationEnclosure"));
-    showEnclosure_->setToolTip(tr("Show the machine's enclosure (its walls, sheet metal and way covers, as the machine library marks them); off: the rest of the machine without it. It is still checked for collisions."));
+    showEnclosure_->setToolTip(tr("Show the machine's enclosure (its walls, sheet metal and way "
+                                  "covers, as the machine library marks them); off: the rest of "
+                                  "the machine without it. It is still checked for collisions."));
     showEnclosure_->setChecked(
         QSettings().value(QStringLiteral("simulationEnclosure"), true).toBool());
     machineRow->addWidget(showMachine_);

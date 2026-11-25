@@ -536,8 +536,8 @@ void PropertyPanel::showSelection(const Selection& selection) {
     unit_ = p.displayUnit;
     if (turretOnly_) {
         // The turret window: a lathe setup's turret table, nothing else.
-        const Setup* s = selection.kind == Selection::Kind::Setup ? p.findSetup(selection.id)
-                                                                  : nullptr;
+        const Setup* s =
+            selection.kind == Selection::Kind::Setup ? p.findSetup(selection.id) : nullptr;
         const machine::Machine* m = s ? document::findMachineFor(p, *s) : nullptr;
         QFormLayout* form = newForm(s ? qs(s->name) : tr("Turret setup"));
         if (m && m->lathe) {
@@ -1307,11 +1307,10 @@ void PropertyPanel::buildLatheSupports(QFormLayout* form, const document::Setup&
         }
         for (const document::FittingPackage& pkg : centres) {
             centreBox->addItem(qs(pkg.fitting.name), qs(pkg.fitting.id.toString()));
-            centreBox->setItemData(
-                centreBox->count() - 1,
-                tr("%1\nIn your library: copied into the project when chosen")
-                    .arg(qs(pkg.fitting.name)),
-                Qt::ToolTipRole);
+            centreBox->setItemData(centreBox->count() - 1,
+                                   tr("%1\nIn your library: copied into the project when chosen")
+                                       .arg(qs(pkg.fitting.name)),
+                                   Qt::ToolTipRole);
         }
         if (notFitting > 0 && onMachine && onMachine->lathe && onMachine->lathe->tailstock) {
             centreBox->insertSeparator(centreBox->count());
@@ -3017,8 +3016,7 @@ void PropertyPanel::buildTurret(QFormLayout* form, const Setup& setup,
             here != setup.turretBlocks.end() ? std::optional<Uuid>(here->block) : std::nullopt,
             tr("(no block)"), tr("%1 (does not fit this station)"),
             [takes](int n) {
-                return tr("%n more blocks that the station does not take: it takes %1", nullptr,
-                          n)
+                return tr("%n more blocks that the station does not take: it takes %1", nullptr, n)
                     .arg(takes.join(QStringLiteral(", ")));
             },
             tr("Change a station's block"),

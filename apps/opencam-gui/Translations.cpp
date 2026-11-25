@@ -107,9 +107,9 @@ bool writeLibraryStrings(const QString& path) {
     for (const tooling::InsertShape& shape : tooling::insertShapes()) {
         add(kTooling, shape.name);
     }
-    for (const auto* letters : {&tooling::holderClampings(), &tooling::holderStyles(),
-                                &tooling::insertClearances(), &tooling::holderLengths(),
-                                &tooling::boringBarTypes()}) {
+    for (const auto* letters :
+         {&tooling::holderClampings(), &tooling::holderStyles(), &tooling::insertClearances(),
+          &tooling::holderLengths(), &tooling::boringBarTypes()}) {
         for (const tooling::IsoLetter& letter : *letters) {
             add(kTooling, letter.name);
         }

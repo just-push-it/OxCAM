@@ -222,17 +222,17 @@ geom2d::Regions axialEnvelope(const Model& model, const Transform3& toFrame,
             Transform3(Eigen::AngleAxisd(angle, Vec3::UnitZ()).toRotationMatrix()) * toFrame;
         all = geom2d::unite(all, axialProfile(model, turned, curveTolerance), {curveTolerance});
     }
-    // A hole across the axis leaves a gap around it in every plane. Turning does not reach in there,
-    // so what is closed off from outside (open only to the axis) is filled.
+    // A hole across the axis leaves a gap around it in every plane. Turning does not reach in
+    // there, so what is closed off from outside (open only to the axis) is filled.
     geom2d::Aabb2 box;
     for (const auto& r : all) {
         box.extend(r.bounds());
     }
     const double pad = 1.0;
-    const geom2d::Regions around{{geom2d::Polyline::rectangle(
-                                      Vec2(box.min.x() - pad, 0.0),
-                                      Vec2(box.max.x() + pad, box.max.y() + pad)),
-                                  {}}};
+    const geom2d::Regions around{
+        {geom2d::Polyline::rectangle(Vec2(box.min.x() - pad, 0.0),
+                                     Vec2(box.max.x() + pad, box.max.y() + pad)),
+         {}}};
     geom2d::Regions closed;
     for (const geom2d::Region& gap : geom2d::subtract(around, all, {curveTolerance})) {
         const geom2d::Aabb2 b = gap.bounds();

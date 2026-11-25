@@ -178,8 +178,7 @@ TEST_CASE("a probing cycle is one instruction with its moves", "[post][probing]"
     CHECK(toJson(back) == json);
 }
 
-TEST_CASE("the generic mill post writes feature checks as skip moves",
-          "[post][probing][golden]") {
+TEST_CASE("the generic mill post writes feature checks as skip moves", "[post][probing][golden]") {
     Probing f;
     std::vector<std::string> warnings;
     const std::string text = postJobs(f.jobs(false), mill(), "probing", 1001, &warnings);

@@ -228,7 +228,7 @@ namespace {
 
 /// A convex outline in the lathe plane (u, v) as a plate from y = low to y = high on the XZ plane.
 occ::handle<Graphic3d_ArrayOfTriangles> lathePlate(const std::vector<Vec2>& pts, double low,
-                                                        double high) {
+                                                   double high) {
     double area = 0.0;
     for (std::size_t k = 0; k < pts.size(); ++k) {
         const Vec2& a = pts[k];
@@ -241,9 +241,8 @@ occ::handle<Graphic3d_ArrayOfTriangles> lathePlate(const std::vector<Vec2>& pts,
     };
     const double turn = area >= 0.0 ? 1.0 : -1.0; // counter-clockwise in (u, v)
     const int n = static_cast<int>(pts.size());
-    occ::handle<Graphic3d_ArrayOfTriangles> tris =
-        new Graphic3d_ArrayOfTriangles(2 * n + 4 * n, 6 * (n - 2) + 6 * n,
-                                       Graphic3d_ArrayFlags_VertexNormal);
+    occ::handle<Graphic3d_ArrayOfTriangles> tris = new Graphic3d_ArrayOfTriangles(
+        2 * n + 4 * n, 6 * (n - 2) + 6 * n, Graphic3d_ArrayFlags_VertexNormal);
     // The two faces (the outline is convex: a fan).
     for (const double y : {high, low}) {
         const gp_Dir normal(0.0, y == high ? 1.0 : -1.0, 0.0);

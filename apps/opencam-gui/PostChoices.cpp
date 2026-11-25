@@ -106,8 +106,8 @@ std::vector<PostEntry> postEntries(const document::Project& project, const docum
     }
     for (const post::PostScript& p : projectPosts) {
         if (writesFor(p, machine) || chosen(p.manifest().id, true)) {
-            out.push_back({PostEntry::Kind::InProject, p.manifest().id,
-                           qs(p.manifest().name), std::nullopt});
+            out.push_back(
+                {PostEntry::Kind::InProject, p.manifest().id, qs(p.manifest().name), std::nullopt});
         }
     }
     for (PostLibrary::Entry& e : library) {

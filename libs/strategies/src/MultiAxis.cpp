@@ -278,7 +278,8 @@ toolpath::Toolpath rotaryPocket(const geom3d::Mesh& part, double stockRadius, do
             reach.assign(static_cast<std::size_t>(map.nx) * static_cast<std::size_t>(map.nt), 0);
             for (int i = 0; i < map.nx; ++i) {
                 const double x = map.x0 + i * map.dx;
-                if (x < partX0 || x > partX1 || stockAt[static_cast<std::size_t>(i)] <= rho + 1e-3) {
+                if (x < partX0 || x > partX1 ||
+                    stockAt[static_cast<std::size_t>(i)] <= rho + 1e-3) {
                     continue;
                 }
                 for (int j = 0; j < map.nt; ++j) {
@@ -371,8 +372,8 @@ toolpath::Toolpath rotaryPocket(const geom3d::Mesh& part, double stockRadius, do
         auto exactFree = [&](const Vec2& q) {
             if (!reach.empty()) {
                 // Out of reach is a boundary in the air: where the grid put it does for that.
-                const int i =
-                    std::clamp(static_cast<int>(std::lround((q.x() - map.x0) / map.dx)), 0, map.nx - 1);
+                const int i = std::clamp(static_cast<int>(std::lround((q.x() - map.x0) / map.dx)),
+                                         0, map.nx - 1);
                 const int j =
                     ((static_cast<int>(std::lround(q.y() / rho / dTheta - map.angle(0) / dTheta)) %
                       map.nt) +

@@ -587,16 +587,17 @@ int workholdingSetupTestRun(ocam::gui::MainWindow& window, const QString& png) {
     expect(dialog->jawRows().size() == 3 &&
                has(dialog->jawRows(),
                    QStringLiteral("Step jaws (test) (OD) | Hard jaws | This project")) &&
-               has(dialog->jawRows(), QStringLiteral("Soft jaws (test) | Soft jaws | This project only")),
+               has(dialog->jawRows(),
+                   QStringLiteral("Soft jaws (test) | Soft jaws | This project only")),
            "every way each set goes on");
     expect(dialog->problemText() == QStringLiteral("Choose the chuck's jaws in Jaw Selection."),
            "no jaws chosen yet: said");
-    expect(has(dialog->copyRows(), QStringLiteral("%1 | %2 | Differs")
-                                       .arg(oldQ, QString::fromStdString(setup().name))) &&
-               has(dialog->copyRows(), QStringLiteral("Step jaws (test) | (none) | Same")),
-           "the project's copies, who uses them, the library's");
-    expect(dialog->chooseJaws(QStringLiteral("Step jaws (test) (OD)")) &&
-               dialog->updateCopy(oldQ),
+    expect(
+        has(dialog->copyRows(),
+            QStringLiteral("%1 | %2 | Differs").arg(oldQ, QString::fromStdString(setup().name))) &&
+            has(dialog->copyRows(), QStringLiteral("Step jaws (test) | (none) | Same")),
+        "the project's copies, who uses them, the library's");
+    expect(dialog->chooseJaws(QStringLiteral("Step jaws (test) (OD)")) && dialog->updateCopy(oldQ),
            "a jaw set chosen, the chuck updated");
     rows("copies after", dialog->copyRows());
     expect(has(dialog->copyRows(), QStringLiteral("%1 | %2 | Same")
@@ -616,8 +617,8 @@ int workholdingSetupTestRun(ocam::gui::MainWindow& window, const QString& png) {
         dialog->snapshot().save(png);
     }
     // A chuck that takes jaw sets, chosen from the library: the library's set that fits goes on.
-    const bool rechosen = dialog->chooseHolding(QStringLiteral("(none)")) &&
-                          dialog->chooseHolding(libraryName);
+    const bool rechosen =
+        dialog->chooseHolding(QStringLiteral("(none)")) && dialog->chooseHolding(libraryName);
     const auto& apart = dialog->edited().project().setups.front();
     rows("jaws for the library's chuck", dialog->jawRows());
     expect(rechosen && apart.workholding && apart.workholding->jawSet == hardId &&
@@ -829,7 +830,6 @@ public:
             box->fontMetrics.elidedText(box->currentText, Qt::ElideRight, std::max(room, 0));
         QProxyStyle::drawControl(element, &cut, painter, widget);
     }
-
 
     int styleHint(StyleHint hint, const QStyleOption* option, const QWidget* widget,
                   QStyleHintReturn* returnData) const override {
@@ -1931,19 +1931,19 @@ int main(int argc, char** argv) {
             box(dialog)->click();
             settle();
             check("machines: ticked, the built-ins too",
-                  shown(list).size() == static_cast<qsizetype>(
-                                             ocam::machine::builtinMachines().size() + 1));
+                  shown(list).size() ==
+                      static_cast<qsizetype>(ocam::machine::builtinMachines().size() + 1));
             box(dialog)->click();
             settle();
-            check("machines: unticked, the user's own again",
-                  shown(list).size() == 1 && list->currentItem() &&
-                      !list->currentItem()->isHidden());
+            check("machines: unticked, the user's own again", shown(list).size() == 1 &&
+                                                                  list->currentItem() &&
+                                                                  !list->currentItem()->isHidden());
             dialog.selectMachine(example->id);
             settle();
-            check("machines: opened on a built-in, it is shown",
-                  box(dialog)->isChecked() && list->currentItem() &&
-                      list->currentItem()->text().startsWith(
-                          QString::fromStdString(example->name)));
+            check(
+                "machines: opened on a built-in, it is shown",
+                box(dialog)->isChecked() && list->currentItem() &&
+                    list->currentItem()->text().startsWith(QString::fromStdString(example->name)));
         }
         {
             ocam::gui::LatheFittingsDialog dialog;
@@ -1959,8 +1959,7 @@ int main(int argc, char** argv) {
             box(dialog)->click();
             settle();
             check("fittings: ticked, the built-ins too",
-                  shown(list).size() ==
-                      static_cast<qsizetype>(doc::builtinFittings().size() + 1));
+                  shown(list).size() == static_cast<qsizetype>(doc::builtinFittings().size() + 1));
             box(dialog)->click();
             settle();
             const QString builtinName =
@@ -2801,8 +2800,8 @@ int main(int argc, char** argv) {
                             QApplication::exit(2);
                             return;
                         }
-                        QApplication::exit(workholdingSetupTestRun(
-                            window, parser.value(screenshotWindow)));
+                        QApplication::exit(
+                            workholdingSetupTestRun(window, parser.value(screenshotWindow)));
                         return;
                     }
                     if (parser.isSet(jawsTest)) {
@@ -2899,17 +2898,18 @@ int main(int argc, char** argv) {
                         check("hard jaws chosen",
                               dialog && entry(QStringLiteral("Step jaws (test) (OD)")) &&
                                   edited().workholding->jawSet == hardId);
-                        check("no option field, no serration, no reverse box",
-                              !combo("setupJawOption") &&
-                                  !dialog->findChild<QSpinBox*>(QStringLiteral("setupJawSerration")) &&
-                                  !dialog->findChild<QCheckBox*>(QStringLiteral("setupJawReversed")));
+                        check(
+                            "no option field, no serration, no reverse box",
+                            !combo("setupJawOption") &&
+                                !dialog->findChild<QSpinBox*>(
+                                    QStringLiteral("setupJawSerration")) &&
+                                !dialog->findChild<QCheckBox*>(QStringLiteral("setupJawReversed")));
                         auto* grip = combo("setupJawGrip");
                         check("Part gripping: OD / ID",
                               grip && grip->itemText(0) == QStringLiteral("OD") &&
                                   grip->itemText(1) == QStringLiteral("ID"));
                         check("jaw position and first jaw along in the dialog",
-                              combo("setupJawPosition") &&
-                                  combo("setupJawAlong") &&
+                              combo("setupJawPosition") && combo("setupJawAlong") &&
                                   labelled(QStringLiteral("First jaw along")));
                         // A set's ways on are entries of the one list: reversed, its step grips
                         // an inside diameter, so an outside grip is refused, said once.
@@ -2922,8 +2922,7 @@ int main(int argc, char** argv) {
                               entry(QStringLiteral("Step jaws (test) (OD)")) &&
                                   edited().workholding->jawOption == "OD" && problems().isEmpty() &&
                                   note().find("holds") != std::string::npos);
-                        auto* offset = length(
-                            "setupJawStopOffset");
+                        auto* offset = length("setupJawStopOffset");
                         check("Jaw face offset, no helper text",
                               offset && offset->toolTip().isEmpty() &&
                                   labelled(QStringLiteral("Jaw face offset")) &&
@@ -2941,8 +2940,7 @@ int main(int argc, char** argv) {
                             position->setCurrentIndex(1); // Manual
                             settle();
                         }
-                        if (auto* opening =
-                                length("setupJawOpening")) {
+                        if (auto* opening = length("setupJawOpening")) {
                             opening->setMm(200.0);
                             settle();
                         }
@@ -2977,15 +2975,16 @@ int main(int argc, char** argv) {
                                   setup().workholding->jaws == doc::JawSetting::OnStock);
                         const auto* named =
                             window.findChild<QLabel*>(QStringLiteral("setupJawSetName"));
-                        check("the page names the set, and no jaw fields",
-                              named && named->text() == QStringLiteral("Step jaws (test) (OD)") &&
-                                  !section("jaws") &&
-                                  !window.findChild<QComboBox*>(QStringLiteral("setupJawSet")) &&
-                                  !window.findChild<QComboBox*>(QStringLiteral("setupJawPosition")) &&
-                                  !window.findChild<QComboBox*>(QStringLiteral("setupJawAlong")) &&
-                                  !window.findChild<QComboBox*>(QStringLiteral("setupJawGrip")) &&
-                                  !window.findChild<ocam::gui::LengthSpinBox*>(
-                                      QStringLiteral("setupJawStopOffset")));
+                        check(
+                            "the page names the set, and no jaw fields",
+                            named && named->text() == QStringLiteral("Step jaws (test) (OD)") &&
+                                !section("jaws") &&
+                                !window.findChild<QComboBox*>(QStringLiteral("setupJawSet")) &&
+                                !window.findChild<QComboBox*>(QStringLiteral("setupJawPosition")) &&
+                                !window.findChild<QComboBox*>(QStringLiteral("setupJawAlong")) &&
+                                !window.findChild<QComboBox*>(QStringLiteral("setupJawGrip")) &&
+                                !window.findChild<ocam::gui::LengthSpinBox*>(
+                                    QStringLiteral("setupJawStopOffset")));
                         if (parser.isSet(screenshotWindow)) {
                             QString panel = parser.value(screenshotWindow);
                             panel.insert(panel.lastIndexOf(QLatin1Char('.')),
@@ -2994,8 +2993,8 @@ int main(int argc, char** argv) {
                                 QApplication::processEvents();
                                 QThread::msleep(10);
                             }
-                            if (auto* label = window.findChild<QWidget*>(
-                                    QStringLiteral("setupJawSetName"))) {
+                            if (auto* label =
+                                    window.findChild<QWidget*>(QStringLiteral("setupJawSetName"))) {
                                 for (QWidget* w = label->parentWidget(); w; w = w->parentWidget()) {
                                     if (auto* area = qobject_cast<QScrollArea*>(w)) {
                                         area->ensureWidgetVisible(label, 0, 250);
@@ -3020,7 +3019,7 @@ int main(int argc, char** argv) {
                         for (const char* name : {"setupSoftBoreDepth", "setupSoftBoreClamp"}) {
                             if (auto* box = length(name)) {
                                 box->setMm(std::string_view(name) == "setupSoftBoreDepth" ? 12.0
-                                                                                         : 30.0);
+                                                                                          : 30.0);
                                 settle();
                             }
                         }
@@ -3101,19 +3100,19 @@ int main(int argc, char** argv) {
                                                    std::function<void(QDialog*)> act) {
                             auto* poll = new QTimer(&app);
                             auto tries = std::make_shared<int>(0);
-                            QObject::connect(poll, &QTimer::timeout, &app,
-                                             [poll, tries, className, act] {
-                                                 auto* d = qobject_cast<QDialog*>(
-                                                     QApplication::activeModalWidget());
-                                                 if (d && d->inherits(className)) {
-                                                     poll->stop();
-                                                     poll->deleteLater();
-                                                     act(d);
-                                                 } else if (++*tries > 500) {
-                                                     poll->stop();
-                                                     poll->deleteLater();
-                                                 }
-                                             });
+                            QObject::connect(
+                                poll, &QTimer::timeout, &app, [poll, tries, className, act] {
+                                    auto* d =
+                                        qobject_cast<QDialog*>(QApplication::activeModalWidget());
+                                    if (d && d->inherits(className)) {
+                                        poll->stop();
+                                        poll->deleteLater();
+                                        act(d);
+                                    } else if (++*tries > 500) {
+                                        poll->stop();
+                                        poll->deleteLater();
+                                    }
+                                });
                             poll->start(20);
                         };
                         const auto machineList = [&] {
@@ -3142,7 +3141,8 @@ int main(int argc, char** argv) {
                             QString useText;
                             onOpen("ocam::gui::MachineLibraryDialog", [&](QDialog* d) {
                                 opened = true;
-                                auto* list = d->findChild<QListWidget*>(QStringLiteral("machineList"));
+                                auto* list =
+                                    d->findChild<QListWidget*>(QStringLiteral("machineList"));
                                 const auto rows =
                                     list ? list->findItems(QStringLiteral("My lathe (test)"),
                                                            Qt::MatchStartsWith)
@@ -3250,9 +3250,9 @@ int main(int argc, char** argv) {
                             check("its own undo step",
                                   window.document()->undoLabel() ==
                                       "Update machine My lathe (test) from the library");
-                            check("the note is gone",
-                                  newerHint() == nullptr && updateButton() == nullptr &&
-                                      setup().machine == "my-test-lathe");
+                            check("the note is gone", newerHint() == nullptr &&
+                                                          updateButton() == nullptr &&
+                                                          setup().machine == "my-test-lathe");
 
                             // The library's file changed outside the library (the revision not
                             // counted): it differs at the same revision, and Update is offered.
@@ -3278,7 +3278,8 @@ int main(int argc, char** argv) {
                         }
 
                         // The turret's Manage blocks... and the tailstock's Manage centres..., then
-                        // Close: in the run that closes the machine library (one opening of it a run).
+                        // Close: in the run that closes the machine library (one opening of it a
+                        // run).
                         if (parser.isSet(setupMachineListClose)) {
                             // The turret's Manage blocks..., then Close: in the turret window.
                             check("the turret window opens from the setup page",
@@ -3300,7 +3301,8 @@ int main(int argc, char** argv) {
 
                             // The tailstock's Manage centres...: the setup given a tailstock first.
                             for (QCheckBox* box : window.findChildren<QCheckBox*>()) {
-                                if (box->text() == QStringLiteral("Tailstock") && !box->isChecked()) {
+                                if (box->text() == QStringLiteral("Tailstock") &&
+                                    !box->isChecked()) {
                                     box->click();
                                     settle();
                                     break;
@@ -3311,9 +3313,10 @@ int main(int argc, char** argv) {
                                 opened = true;
                                 d->reject();
                             });
-                            const bool centres = chooseInPopup(
-                                window.findChild<QComboBox*>(QStringLiteral("setupTailstockCentre")),
-                                QStringLiteral("Manage centres..."));
+                            const bool centres =
+                                chooseInPopup(window.findChild<QComboBox*>(
+                                                  QStringLiteral("setupTailstockCentre")),
+                                              QStringLiteral("Manage centres..."));
                             settle();
                             check("the centres library opened from the centre list and closed",
                                   centres && opened && setup().tailstock.has_value() &&
@@ -3345,8 +3348,7 @@ int main(int argc, char** argv) {
                             QApplication::processEvents();
                             QThread::msleep(10);
                         }
-                        std::printf("turret window: %s\n",
-                                    qPrintable(turret->preview()->note()));
+                        std::printf("turret window: %s\n", qPrintable(turret->preview()->note()));
                         for (const auto& [name, colour] : turret->preview()->partColours()) {
                             if (name.rfind("T0", 0) == 0 || name.rfind("T1", 0) == 0) {
                                 std::printf("  %s %06X\n", name.c_str(), colour);
@@ -3437,8 +3439,8 @@ int main(int argc, char** argv) {
                         std::printf("summary: %s\n",
                                     summary ? qPrintable(summary->text()) : "(none)");
                         check("the setup page sums up the stations",
-                              summary && summary->text().contains(
-                                             QStringLiteral("%1: ").arg(first)));
+                              summary &&
+                                  summary->text().contains(QStringLiteral("%1: ").arg(first)));
                         if (!turret || openTurretWindow(window) != turret) {
                             check("the turret window opens from the setup page", false);
                             QApplication::exit(6);
@@ -3448,10 +3450,9 @@ int main(int argc, char** argv) {
                         auto* panel = turret->panel();
                         const auto has = [](const std::vector<std::string>& names,
                                             const std::string& start) {
-                            return std::any_of(names.begin(), names.end(),
-                                               [&](const std::string& n) {
-                                                   return n.rfind(start, 0) == 0;
-                                               });
+                            return std::any_of(
+                                names.begin(), names.end(),
+                                [&](const std::string& n) { return n.rfind(start, 0) == 0; });
                         };
                         const auto print = [&](const char* when) {
                             const auto& at = preview->position();
@@ -3469,9 +3470,8 @@ int main(int argc, char** argv) {
                             const auto tip = preview->tipNow();
                             const auto work = preview->workPoint();
                             if (tip && work) {
-                                std::printf("  tip %.4f %.4f %.4f, work %.4f %.4f %.4f\n",
-                                            tip->x(), tip->y(), tip->z(), work->x(), work->y(),
-                                            work->z());
+                                std::printf("  tip %.4f %.4f %.4f, work %.4f %.4f %.4f\n", tip->x(),
+                                            tip->y(), tip->z(), work->x(), work->y(), work->z());
                             }
                             return tip && work && (*tip - *work).norm() < 1e-3;
                         };
@@ -3487,16 +3487,16 @@ int main(int argc, char** argv) {
                             settle();
                         }
                         print("opened");
-                        const std::string firstTool = QStringLiteral("T%1").arg(first, 2, 10,
-                                                          QLatin1Char('0')).toStdString();
-                        const std::string secondTool = QStringLiteral("T%1").arg(second, 2, 10,
-                                                           QLatin1Char('0')).toStdString();
+                        const std::string firstTool =
+                            QStringLiteral("T%1").arg(first, 2, 10, QLatin1Char('0')).toStdString();
+                        const std::string secondTool = QStringLiteral("T%1")
+                                                           .arg(second, 2, 10, QLatin1Char('0'))
+                                                           .toStdString();
                         const std::string firstBlock =
                             QStringLiteral("Station %1 block").arg(first).toStdString();
                         check("the preview shows beside the table, on the row chosen",
                               turret->isVisible() && preview->isVisible() &&
-                                  !preview->shownParts().empty() &&
-                                  preview->station() == first);
+                                  !preview->shownParts().empty() && preview->station() == first);
                         check("its station's block highlighted, its tool not, nothing else",
                               has(preview->highlightedParts(), firstBlock) &&
                                   !has(preview->highlightedParts(), firstTool) &&
@@ -3510,8 +3510,8 @@ int main(int argc, char** argv) {
                                 continue;
                             }
                             ++toolParts;
-                            const bool cuts = name.ends_with(", insert") ||
-                                              name.ends_with(", tool");
+                            const bool cuts =
+                                name.ends_with(", insert") || name.ends_with(", tool");
                             coloured = coloured && colour == (cuts ? 0xD4A82Au : 0x26282Bu);
                             std::printf("  %s: %06X\n", name.c_str(), colour);
                         }
@@ -3670,12 +3670,12 @@ int main(int argc, char** argv) {
                             }
                             check("closed and opened again, the preview draws each time",
                                   everyTime);
-                            check("one note under the preview",
-                                  preview->findChildren<QLabel*>(
-                                      QStringLiteral("turretPreviewNote")).size() == 1);
+                            check(
+                                "one note under the preview",
+                                preview->findChildren<QLabel*>(QStringLiteral("turretPreviewNote"))
+                                        .size() == 1);
                         }
-                        std::printf("turret preview test: %s\n",
-                                    failed == 0 ? "all ok" : "WRONG");
+                        std::printf("turret preview test: %s\n", failed == 0 ? "all ok" : "WRONG");
                         std::fflush(stdout);
                         if (!file.isEmpty()) {
                             preview->setStation(first);
@@ -3773,10 +3773,9 @@ int main(int argc, char** argv) {
                             return "";
                         };
                         const auto list = [&](const char* kind, int station) {
-                            return window.findChild<QComboBox*>(
-                                QStringLiteral("setupStation%1%2")
-                                    .arg(QLatin1String(kind))
-                                    .arg(station));
+                            return window.findChild<QComboBox*>(QStringLiteral("setupStation%1%2")
+                                                                    .arg(QLatin1String(kind))
+                                                                    .arg(station));
                         };
                         const auto items = [](QComboBox* box) {
                             QStringList all;
@@ -3803,14 +3802,14 @@ int main(int argc, char** argv) {
                                       ->findChildren<QSpinBox*>()
                                       .isEmpty());
                         // T1, a turning tool, on station 1: a station for milling units only.
-                        check("station 1 shows its tool, offers no holder, and says why",
-                              list("Tool", 1) &&
-                                  list("Tool", 1)->currentText().contains(
-                                      QStringLiteral("CNMG")) &&
-                                  list("Block", 1)->findText(QStringLiteral("OD holder"),
-                                                             Qt::MatchContains) < 0 &&
-                                  anyToolTipHolds(list("Block", 1),
-                                                  QStringLiteral("it takes Unit")));
+                        check(
+                            "station 1 shows its tool, offers no holder, and says why",
+                            list("Tool", 1) &&
+                                list("Tool", 1)->currentText().contains(QStringLiteral("CNMG")) &&
+                                list("Block", 1)
+                                        ->findText(QStringLiteral("OD holder"), Qt::MatchContains) <
+                                    0 &&
+                                anyToolTipHolds(list("Block", 1), QStringLiteral("it takes Unit")));
                         // The library's blocks under a heading, each name first and whole in
                         // the open list, however narrow the list is.
                         if (QComboBox* two = list("Block", 2)) {
@@ -3872,9 +3871,9 @@ int main(int argc, char** argv) {
                                   blockOn(2) == "OD holder (test)" &&
                                   list("Tool", 2)->currentText().contains(QStringLiteral("CNMG")));
                         const auto load = [&] {
-                            return doc::turretLoad(*window.document(), project().setups.front(),
-                                                   doc::machineFor(project(),
-                                                                   project().setups.front()));
+                            return doc::turretLoad(
+                                *window.document(), project().setups.front(),
+                                doc::machineFor(project(), project().setups.front()));
                         };
                         const auto heldBy = [&](int station) -> std::string {
                             for (const auto& s : load().stations) {
@@ -3895,9 +3894,9 @@ int main(int argc, char** argv) {
                                   numberOf("Drill 16") == 3 &&
                                   heldBy(3) == "Drill 16 in Milling unit (test)");
                         // The turning tool to station 3: the drill takes its old number.
-                        check("two tools swapped",
-                              click(list("Tool", 3), QStringLiteral("CNMG")) &&
-                                  numberOf("CNMG 120404") == 3 && numberOf("Drill 16") == 2);
+                        check("two tools swapped", click(list("Tool", 3), QStringLiteral("CNMG")) &&
+                                                       numberOf("CNMG 120404") == 3 &&
+                                                       numberOf("Drill 16") == 2);
                         // A tool an operation uses can go to another station, not out.
                         click(list("Tool", 3), QStringLiteral("(no tool)"));
                         check("a used tool not taken out", numberOf("CNMG 120404") == 3);

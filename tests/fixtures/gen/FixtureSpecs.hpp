@@ -139,7 +139,8 @@ inline constexpr double kFlatX = 15, kStudDiameter = 10, kStudLength = 8, kStudZ
 } // namespace stud_bar
 
 /// wrapped.step: a shaft on Z, with a neck turned down at its front, and a slot wrapped around the
-/// big diameter over `kSlotAngle`, centred on +X, its front end open into the neck (wrapped_project).
+/// big diameter over `kSlotAngle`, centred on +X, its front end open into the neck
+/// (wrapped_project).
 namespace wrapped {
 inline constexpr double kDiameter = 40, kLength = 60, kNeckDiameter = 30, kNeckLength = 15;
 inline constexpr double kSlotZ0 = 25, kSlotZ1 = 35, kSlotDepth = 3;

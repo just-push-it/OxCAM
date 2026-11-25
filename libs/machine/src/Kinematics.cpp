@@ -375,9 +375,9 @@ SolveResult solveLiveHeld(const Machine& machine, const toolpath::Toolpath& path
     return result;
 }
 
-/// A live tool around the part by cylindrical interpolation (DL-0074): X as the radius, Z, and C going
-/// on past a turn, as the control has to take it. A run of pieces on one straight line unrolled comes
-/// back as the one line it was, since the control interpolates there.
+/// A live tool around the part by cylindrical interpolation (DL-0074): X as the radius, Z, and C
+/// going on past a turn, as the control has to take it. A run of pieces on one straight line
+/// unrolled comes back as the one line it was, since the control interpolates there.
 SolveResult solveLiveWrap(const Machine& machine, const toolpath::Toolpath& path) {
     SolveResult result;
     toolpath::Toolpath out = path;
@@ -412,19 +412,23 @@ SolveResult solveLiveWrap(const Machine& machine, const toolpath::Toolpath& path
         next.end = unrolled(m.end);
         next.axis = Vec3(std::cos(c), std::sin(c), 0.0);
         // In (radius, angle, z) at a length scale that makes them comparable.
-        const Vec3 step(next.end.x() - from.x(), (c - fromC) * next.end.x(), next.end.z() - from.z());
+        const Vec3 step(next.end.x() - from.x(), (c - fromC) * next.end.x(),
+                        next.end.z() - from.z());
         if (!out.moves.empty()) {
             const toolpath::Move& last = out.moves.back();
             const double lastC = motion.angles.back().c;
-            const double beforeC = motion.angles.size() > 1 ? motion.angles[motion.angles.size() - 2].c
-                                                            : motion.start.c;
-            const Vec3 lastFrom = out.moves.size() > 1 ? out.moves[out.moves.size() - 2].end : out.start;
+            const double beforeC = motion.angles.size() > 1
+                                       ? motion.angles[motion.angles.size() - 2].c
+                                       : motion.start.c;
+            const Vec3 lastFrom =
+                out.moves.size() > 1 ? out.moves[out.moves.size() - 2].end : out.start;
             const Vec3 lastStep(last.end.x() - lastFrom.x(), (lastC - beforeC) * next.end.x(),
                                 last.end.z() - lastFrom.z());
-            const bool sameLine = last.kind == next.kind && last.feedRate == next.feedRate &&
-                                  last.feedClass == next.feedClass && step.norm() > 1e-12 &&
-                                  lastStep.norm() > 1e-12 && step.dot(lastStep) > 0.0 &&
-                                  step.cross(lastStep).norm() <= 1e-9 * step.norm() * lastStep.norm();
+            const bool sameLine =
+                last.kind == next.kind && last.feedRate == next.feedRate &&
+                last.feedClass == next.feedClass && step.norm() > 1e-12 &&
+                lastStep.norm() > 1e-12 && step.dot(lastStep) > 0.0 &&
+                step.cross(lastStep).norm() <= 1e-9 * step.norm() * lastStep.norm();
             if (sameLine) {
                 out.moves.back().end = next.end;
                 out.moves.back().axis = next.axis;
@@ -448,7 +452,8 @@ SolveResult solveLiveWrap(const Machine& machine, const toolpath::Toolpath& path
 /// A live tool on the part's face by polar interpolation (DL-0066): rapids in X and C, with the
 /// control's polar mode off, and feed moves in the WCS's X and Y for the control to turn into X and
 /// C. A helix becomes lines, as controls differ on moving Z with an arc in that mode.
-SolveResult solveLivePolar(const Machine& machine, const toolpath::Toolpath& path, double tolerance) {
+SolveResult solveLivePolar(const Machine& machine, const toolpath::Toolpath& path,
+                           double tolerance) {
     SolveResult result;
     const toolpath::Toolpath src = toolpath::expandCycles(path);
     toolpath::Toolpath out = src;

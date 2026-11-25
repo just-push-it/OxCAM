@@ -117,15 +117,15 @@ struct NcInstr {
     bool open = false;          ///< Chuck: opens, or closes.
     bool sub = false;           ///< Spindle, Chuck: the sub-spindle's (ADR-0007).
     std::optional<double> syncAngle; ///< SpindleSync: the sub-spindle's to the main [rad].
-    double wrapRadius = 0.0;    ///< Wrap: the cylinder [mm].
-    double surfaceSpeed = 0.0;  ///< Spindle: constant surface speed [mm/s]
-    double maxSpindle = 0.0;    ///< Spindle: limit under constant surface speed [rev/s]
+    double wrapRadius = 0.0;         ///< Wrap: the cylinder [mm].
+    double surfaceSpeed = 0.0;       ///< Spindle: constant surface speed [mm/s]
+    double maxSpindle = 0.0;         ///< Spindle: limit under constant surface speed [rev/s]
     /// Rapid / Linear of a multi-axis toolpath: the rotary axis letters to position ("A", "AC",
     /// "BC") at `rotary`.
     std::string axes;
     /// Linear without tool centre point control: inverse-time feed (G93), 1 / move time [1/min].
     double inverseTime = 0.0;
-    bool tcp = false;   ///< ToolLength: start tool centre point control.
+    bool tcp = false; ///< ToolLength: start tool centre point control.
     /// OperationBegin / OperationEnd, Probe: index into NcProgram::operations.
     int operation = -1;
     /// Linear / Arc: what the move is for (cut, plunge, ramp, lead-in, lead-out, link).

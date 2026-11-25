@@ -142,7 +142,8 @@ TEST_CASE("simulate the block fixture: face, pocket and contour", "[document][si
 
     // The display mesh of the final stock shows the pocket floor.
     const double floorZ = -kPocketDepth - 1.0; // WCS: origin on the stock top, 1 mm above the part
-    // The display (DL-0040) puts the pocket floor where it was cut, and encloses the stock's volume.
+    // The display (DL-0040) puts the pocket floor where it was cut, and encloses the stock's
+    // volume.
     const sim::DisplayMesh smooth = sim::buildDisplayMesh(sim.finalStock(), &*sim.comparison);
     CHECK(std::any_of(smooth.positions.begin(), smooth.positions.end(),
                       [&](const auto& v) { return std::abs(v[2] - floorZ) < 1e-3; }));

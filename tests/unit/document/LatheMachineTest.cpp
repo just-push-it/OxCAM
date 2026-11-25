@@ -922,8 +922,9 @@ TEST_CASE("tools mount through the block on their station", "[document][lathe][m
         CHECK(s.faceDown);
         const std::vector<sim::TurretTool> tools =
             turretTools(f.doc, turretLoad(f.doc, setup(), m), machine::WorkMount{});
-        const auto held = std::find_if(tools.begin(), tools.end(),
-                                       [](const sim::TurretTool& tool) { return tool.station == 1; });
+        const auto held = std::find_if(tools.begin(), tools.end(), [](const sim::TurretTool& tool) {
+            return tool.station == 1;
+        });
         REQUIRE(held != tools.end());
         double low = 1e9;
         double high = -1e9;
@@ -973,8 +974,9 @@ TEST_CASE("tools mount through the block on their station", "[document][lathe][m
         const TurretStation s = station(1);
         const std::vector<sim::TurretTool> tools =
             turretTools(f.doc, turretLoad(f.doc, setup(), m), machine::WorkMount{});
-        const auto held = std::find_if(tools.begin(), tools.end(),
-                                       [](const sim::TurretTool& tool) { return tool.station == 1; });
+        const auto held = std::find_if(tools.begin(), tools.end(), [](const sim::TurretTool& tool) {
+            return tool.station == 1;
+        });
         REQUIRE(held != tools.end());
         double insertLow = 1e9;
         double bodyLow = 1e9;

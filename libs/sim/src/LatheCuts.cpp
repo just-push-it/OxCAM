@@ -134,7 +134,8 @@ std::vector<ThreadGroup> threadGroups(const std::vector<LatheThreadCut>& cuts) {
         }
         it->passes.push_back(&c);
         const double reached = c.from.x() + c.done * (c.to.x() - c.from.x());
-        it->zMin = std::min({it->zMin, c.from.x() + it->shape.first(), reached + it->shape.first()});
+        it->zMin =
+            std::min({it->zMin, c.from.x() + it->shape.first(), reached + it->shape.first()});
         it->zMax = std::max({it->zMax, c.from.x() + it->shape.last(), reached + it->shape.last()});
     }
     // Deepest first would stop early, but passes are few: the order makes no difference.
@@ -201,7 +202,6 @@ EdgeUse edgeUse(const ThreadGroup& g, const Vec2& p, const Vec2& q) {
 }
 
 // -- Holes ------------------------------------------------------------------------------------
-
 
 /// Negative inside the hole; never more than a little off the true distance near its surface.
 double holeDistance(const LatheHoleCut& h, const Vec3& p) {
@@ -332,8 +332,8 @@ void clipTriangle(const MeshVertex& a, const MeshVertex& b, const MeshVertex& c,
         const bool iKept = f[static_cast<std::size_t>(i)] >= 0.0;
         for (int k = 0; k < 12; ++k) {
             const double t = 0.5 * (t0 + t1);
-            const MeshVertex m = between(*v[static_cast<std::size_t>(i)],
-                                         *v[static_cast<std::size_t>(j)], t);
+            const MeshVertex m =
+                between(*v[static_cast<std::size_t>(i)], *v[static_cast<std::size_t>(j)], t);
             if ((keep(m.position) >= 0.0) == iKept) {
                 t0 = t;
             } else {
@@ -376,7 +376,8 @@ void clipMesh(DisplayMesh& mesh, const Field& keep, const Vec3& nearMin, const V
         return MeshVertex{Vec3(p[0], p[1], p[2]), Vec3(n[0], n[1], n[2]), mesh.colours[i]};
     };
     // Untouched triangles keep their vertices, shared as they were.
-    std::vector<std::uint32_t> mapped(mesh.positions.size(), std::numeric_limits<std::uint32_t>::max());
+    std::vector<std::uint32_t> mapped(mesh.positions.size(),
+                                      std::numeric_limits<std::uint32_t>::max());
     auto keepVertex = [&](std::uint32_t i) {
         if (mapped[i] == std::numeric_limits<std::uint32_t>::max()) {
             mapped[i] = static_cast<std::uint32_t>(out.positions.size());
@@ -387,14 +388,15 @@ void clipMesh(DisplayMesh& mesh, const Field& keep, const Vec3& nearMin, const V
         out.indices.push_back(mapped[i]);
     };
     for (std::size_t t = 0; t + 2 < mesh.indices.size(); t += 3) {
-        const std::uint32_t i0 = mesh.indices[t], i1 = mesh.indices[t + 1], i2 = mesh.indices[t + 2];
+        const std::uint32_t i0 = mesh.indices[t], i1 = mesh.indices[t + 1],
+                            i2 = mesh.indices[t + 2];
         bool touches = true;
         for (int axis = 0; axis < 3 && touches; ++axis) {
             const auto ua = static_cast<std::size_t>(axis);
-            const float lo = std::min({mesh.positions[i0][ua], mesh.positions[i1][ua],
-                                       mesh.positions[i2][ua]});
-            const float hi = std::max({mesh.positions[i0][ua], mesh.positions[i1][ua],
-                                       mesh.positions[i2][ua]});
+            const float lo =
+                std::min({mesh.positions[i0][ua], mesh.positions[i1][ua], mesh.positions[i2][ua]});
+            const float hi =
+                std::max({mesh.positions[i0][ua], mesh.positions[i1][ua], mesh.positions[i2][ua]});
             touches = hi >= nearMin[axis] && lo <= nearMax[axis];
         }
         if (!touches) {
@@ -497,7 +499,8 @@ void threadStrip(const std::vector<const ThreadGroup*>& users, const Vec2& p, co
             colour ? colour(p + d * ((k + 0.5) / steps), outward) : kStockColour;
     }
     auto baseAt = [&](double t) -> const Rgb& {
-        return base[static_cast<std::size_t>(std::clamp(static_cast<int>(t * steps), 0, steps - 1))];
+        return base[static_cast<std::size_t>(
+            std::clamp(static_cast<int>(t * steps), 0, steps - 1))];
     };
 
     struct Point {
@@ -611,10 +614,10 @@ DisplayMesh holeWall(const LatheHoleCut& h, const Rgb& rgb) {
             const Vec3 n = (-d.x() * radial + d.y() * h.axis).normalized();
             for (const Vec2& p : {a, b}) {
                 const Vec3 x = h.tip + p.x() * h.axis + p.y() * radial;
-                mesh.positions.push_back(
-                    {static_cast<float>(x.x()), static_cast<float>(x.y()), static_cast<float>(x.z())});
-                mesh.normals.push_back(
-                    {static_cast<float>(n.x()), static_cast<float>(n.y()), static_cast<float>(n.z())});
+                mesh.positions.push_back({static_cast<float>(x.x()), static_cast<float>(x.y()),
+                                          static_cast<float>(x.z())});
+                mesh.normals.push_back({static_cast<float>(n.x()), static_cast<float>(n.y()),
+                                        static_cast<float>(n.z())});
                 mesh.colours.push_back(rgb);
             }
         }
@@ -684,8 +687,8 @@ void LatheStock::cutHole(const LatheHoleCut& hole) {
     for (LatheHoleCut& h : holes_) {
         // The same hole again, deeper or not: pecks and repeated passes.
         const Vec3 along = hole.tip - h.tip;
-        if ((h.axis - hole.axis).norm() < 1e-9 && (along - along.dot(h.axis) * h.axis).norm() < 1e-6 &&
-            h.profile == hole.profile) {
+        if ((h.axis - hole.axis).norm() < 1e-9 &&
+            (along - along.dot(h.axis) * h.axis).norm() < 1e-6 && h.profile == hole.profile) {
             const double offset = along.dot(h.axis); // hole's tip above h's: positive
             if (offset < 0.0) {
                 h.tip = hole.tip;
@@ -779,8 +782,8 @@ double LatheStock::volume() const {
                 const double rho = radius * std::sqrt((ring + 0.5) / kRings); // equal areas
                 for (int j = 0; j < kAround; ++j) {
                     const double angle = 2.0 * kPi * (j + 0.5) / kAround;
-                    const Vec3 x = h.tip + a * h.axis +
-                                   rho * (std::cos(angle) * ex + std::sin(angle) * ey);
+                    const Vec3 x =
+                        h.tip + a * h.axis + rho * (std::cos(angle) * ex + std::sin(angle) * ey);
                     if (inside(Vec2(x.z(), std::hypot(x.x(), x.y())))) {
                         v -= kPi * radius * radius * da / (kRings * kAround);
                     }
@@ -807,9 +810,8 @@ DisplayMesh latheStockMesh(const LatheStock& stock, double chordTolerance,
     // The profile's edges a thread does not touch revolve as ever.
     DisplayMesh mesh = revolvedLoops(
         loops, chordTolerance, colour, creaseAngle, colourStep, [&](const Vec2& p, const Vec2& q) {
-            return std::any_of(groups.begin(), groups.end(), [&](const ThreadGroup& g) {
-                return edgeUse(g, p, q).used;
-            });
+            return std::any_of(groups.begin(), groups.end(),
+                               [&](const ThreadGroup& g) { return edgeUse(g, p, q).used; });
         });
     // Each edge once, with every thread on it.
     for (const auto& loop : loops) {
@@ -848,7 +850,8 @@ DisplayMesh latheStockMesh(const LatheStock& stock, double chordTolerance,
         Vec3 lo = h.tip, hi = h.tip;
         const Vec3 top = h.tip + h.length * h.axis;
         for (int axis = 0; axis < 3; ++axis) {
-            const double reach = radius * std::sqrt(std::max(0.0, 1.0 - h.axis[axis] * h.axis[axis]));
+            const double reach =
+                radius * std::sqrt(std::max(0.0, 1.0 - h.axis[axis] * h.axis[axis]));
             lo[axis] = std::min(h.tip[axis], top[axis]) - reach - 2.0 * step;
             hi[axis] = std::max(h.tip[axis], top[axis]) + reach + 2.0 * step;
         }
@@ -860,7 +863,8 @@ DisplayMesh latheStockMesh(const LatheStock& stock, double chordTolerance,
         if (radius <= 0.0 || h.length <= 0.0) {
             continue;
         }
-        DisplayMesh wall = holeWall(h, cutColour ? cutColour(true, static_cast<int>(k)) : kStockColour);
+        DisplayMesh wall =
+            holeWall(h, cutColour ? cutColour(true, static_cast<int>(k)) : kStockColour);
         const double step = std::max(radius / 8.0, 0.02);
         const Vec3 far = Vec3::Constant(std::numeric_limits<double>::max() / 4.0);
         clipMesh(

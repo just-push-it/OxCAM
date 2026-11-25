@@ -83,10 +83,9 @@ std::vector<PostJob> goldenJobs(bool compensated) {
 } // namespace
 
 TEST_CASE("the built-in posts are listed and declare their machines", "[post][builtin]") {
-    CHECK(builtinPostIds() == std::vector<std::string>{"fanuc-generic-mill",
-                                                       "fanuc-generic-mill-4axis",
-                                                       "fanuc-generic-lathe", "haas-lathe",
-                                                       "haas-classic-mill"});
+    CHECK(builtinPostIds() ==
+          std::vector<std::string>{"fanuc-generic-mill", "fanuc-generic-mill-4axis",
+                                   "fanuc-generic-lathe", "haas-lathe", "haas-classic-mill"});
     const PostManifest& m = builtinPost("fanuc-generic-mill").manifest();
     CHECK(m.tcp);
     CHECK(m.verify == "fanuc-mill");

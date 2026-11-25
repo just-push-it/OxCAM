@@ -127,8 +127,7 @@ std::vector<sim::TurretTool> turretTools(const Document& doc, const TurretLoad& 
 /// said in `warnings`.
 std::vector<sim::LatheWorkBody> latheWorkBodies(const Document& doc, const Setup& setup,
                                                 const machine::Machine& machine,
-                                                const machine::WorkMount& mount,
-                                                double* tailstockW,
+                                                const machine::WorkMount& mount, double* tailstockW,
                                                 std::vector<std::string>* warnings = nullptr);
 
 /// What a view of a lathe setup's machine draws: the machine's own parts (its chuck only when it

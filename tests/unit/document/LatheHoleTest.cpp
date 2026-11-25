@@ -320,8 +320,8 @@ TEST_CASE("tapping and reaming need a hole first", "[document][lathe][holes]") {
                       f.progress);
         REQUIRE_FALSE(refused.ok());
         CHECK_THAT(refused.errors.front(), ContainsSubstring("Left-hand tap cycle"));
-        const PostOutput out = postSetup(f.doc, f.setupId, machine,
-                                         post::builtinPost("haas-lathe"), f.cancel, f.progress);
+        const PostOutput out = postSetup(f.doc, f.setupId, machine, post::builtinPost("haas-lathe"),
+                                         f.cancel, f.progress);
         INFO((out.errors.empty() ? std::string() : out.errors.front()));
         REQUIRE(out.ok());
         INFO(out.gcode);
@@ -713,8 +713,7 @@ TEST_CASE("threads show in the stock, and read as no gouge", "[document][lathe]"
     CHECK(back->operations[3].latheAfter->threads() == after.threads());
     CHECK(back->operations[3].latheAfter->volume() == Catch::Approx(after.volume()));
     // Part way through the operation, part of the thread.
-    const auto partial =
-        simulatePartialLathe(sim, 3, thread.toolpath.moves.size() / 2, nullptr);
+    const auto partial = simulatePartialLathe(sim, 3, thread.toolpath.moves.size() / 2, nullptr);
     REQUIRE(partial);
     CHECK(partial->threads().size() < after.threads().size());
     CHECK_FALSE(partial->threads().empty());
@@ -754,8 +753,7 @@ namespace {
 struct LiveFixture {
     CancelToken cancel;
     NullProgress progress;
-    Document doc =
-        Document::open(std::filesystem::path(OCAM_FIXTURE_DIR) / "live_project.ocam");
+    Document doc = Document::open(std::filesystem::path(OCAM_FIXTURE_DIR) / "live_project.ocam");
 
     const Setup& setup() const { return doc.project().setups.front(); }
     toolpath::Toolpath generate(std::size_t k) {
@@ -895,8 +893,7 @@ TEST_CASE("a live tool on the spindle's axis", "[document][lathe][live]") {
             }
         }
         // Either way the stock takes the same hole.
-        const SetupSimulation sim =
-            simulateSetup(g.doc, g.setup().id, {}, g.cancel, g.progress);
+        const SetupSimulation sim = simulateSetup(g.doc, g.setup().id, {}, g.cancel, g.progress);
         REQUIRE(sim.operations.back().error.empty());
         CHECK_FALSE(tp.moves.empty());
         CHECK(sim.operations.back().removedVolume > 0.0);
@@ -932,18 +929,18 @@ TEST_CASE("a live tool's speed and the program", "[document][lathe][live]") {
         const auto out = post("haas-lathe");
         INFO((out.errors.empty() ? std::string() : out.errors.front()));
         REQUIRE(out.ok());
-        for (const char* word : {"G98", "M154", "M133 P", "M135", "M155", "G99", "C90.", "C180.",
-                                 "C270.", "Y8."}) {
+        for (const char* word :
+             {"G98", "M154", "M133 P", "M135", "M155", "G99", "C90.", "C180.", "C270.", "Y8."}) {
             INFO(word);
             CHECK_THAT(out.gcode, ContainsSubstring(word));
         }
         // The turning before it stays per revolution; the live tool's speed is the preset's.
         const toolpath::Toolpath bolts = f.generate(2);
-        CHECK_THAT(out.gcode, ContainsSubstring(fmt::format(
-                                  "M133 P{:.0f}", bolts.spindleSpeed * 60.0)));
+        CHECK_THAT(out.gcode,
+                   ContainsSubstring(fmt::format("M133 P{:.0f}", bolts.spindleSpeed * 60.0)));
         double deviation = 0.0;
-        const auto differs = post::compareBackplot(out.toolpaths, post::backplot(out.gcode, {true}).path,
-                                                   2e-3, &deviation, false);
+        const auto differs = post::compareBackplot(
+            out.toolpaths, post::backplot(out.gcode, {true}).path, 2e-3, &deviation, false);
         (void)deviation;
         INFO(differs.value_or(""));
         CHECK_FALSE(differs.has_value());
@@ -973,11 +970,12 @@ TEST_CASE("a live tool's speed and the program", "[document][lathe][live]") {
         INFO((out.errors.empty() ? std::string() : out.errors.front()));
         REQUIRE(out.ok());
         INFO(out.gcode);
-        CHECK_THAT(out.gcode, ContainsSubstring(fmt::format("S{:.0f}", tapped.spindleSpeed * 60.0)));
+        CHECK_THAT(out.gcode,
+                   ContainsSubstring(fmt::format("S{:.0f}", tapped.spindleSpeed * 60.0)));
         CHECK_THAT(out.gcode, ContainsSubstring("G18 G95 C"));
         CHECK_THAT(out.gcode, ContainsSubstring("G19 G195 X"));
-        CHECK_THAT(out.gcode, !ContainsSubstring(
-                                  fmt::format("M133 P{:.0f}", tapped.spindleSpeed * 60.0)));
+        CHECK_THAT(out.gcode,
+                   !ContainsSubstring(fmt::format("M133 P{:.0f}", tapped.spindleSpeed * 60.0)));
         double deviation = 0.0;
         const auto differs = post::compareBackplot(
             out.toolpaths, post::backplot(out.gcode, {true}).path, 2e-3, &deviation, false);
@@ -996,7 +994,8 @@ TEST_CASE("a live tool's speed and the program", "[document][lathe][live]") {
         CHECK_THAT(left.gcode, ContainsSubstring("G18 G186 C"));
         CHECK_THAT(left.gcode, ContainsSubstring("G19 G196 X"));
         CHECK_THAT(left.gcode, !ContainsSubstring("G195"));
-        CHECK_THAT(left.gcode, ContainsSubstring(fmt::format("S{:.0f}", tapped.spindleSpeed * 60.0)));
+        CHECK_THAT(left.gcode,
+                   ContainsSubstring(fmt::format("S{:.0f}", tapped.spindleSpeed * 60.0)));
         const auto backLeft = post::compareBackplot(
             left.toolpaths, post::backplot(left.gcode, {true}).path, 2e-3, &deviation, false);
         INFO(backLeft.value_or(""));

@@ -1458,7 +1458,8 @@ TEST_CASE("a setup's workholding set up apart and taken back", "[document][workh
     CHECK(apart.project().findWorkholding(chuckId)->name == "Chuck (updated)");
     WorkholdingPackage stranger = *package;
     stranger.workholding.id = Uuid::generate();
-    CHECK_THROWS_WITH(apart.updateWorkholding(stranger, {}), ContainsSubstring("not in the project"));
+    CHECK_THROWS_WITH(apart.updateWorkholding(stranger, {}),
+                      ContainsSubstring("not in the project"));
     // The document it came from is as it was until then.
     CHECK(f.doc.project().findWorkholding(chuckId)->name != "Chuck (updated)");
 

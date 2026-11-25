@@ -24,7 +24,6 @@
 #include <QShowEvent>
 #include <QSpinBox>
 #include <QVBoxLayout>
-
 #include <algorithm>
 #include <limits>
 
@@ -80,7 +79,9 @@ TurretPreview::TurretPreview(QWidget* parent) : QWidget(parent) {
     bar->addWidget(atBox_);
     enclosure_ = new QCheckBox(tr("Enclosure"));
     enclosure_->setObjectName(QStringLiteral("turretPreviewEnclosure"));
-    enclosure_->setToolTip(tr("Show the machine's enclosure (its walls, sheet metal and way covers, as the machine library marks them); off: the rest of the machine without it. It is still checked for collisions."));
+    enclosure_->setToolTip(tr("Show the machine's enclosure (its walls, sheet metal and way "
+                              "covers, as the machine library marks them); off: the rest of the "
+                              "machine without it. It is still checked for collisions."));
     enclosure_->setChecked(
         QSettings().value(QStringLiteral("turretPreviewEnclosure"), true).toBool());
     bar->addWidget(wholeMachine_);
@@ -371,9 +372,9 @@ void TurretPreview::redraw() {
                 position_.t = motion.held.t;
                 position_.w = motion.held.w;
                 position_.rotary = {};
-                positionNote_ = tr("The tool's tip on the front of the stock, at %1.")
-                                    .arg(it->second.across ? tr("its largest diameter")
-                                                           : tr("its centre"));
+                positionNote_ =
+                    tr("The tool's tip on the front of the stock, at %1.")
+                        .arg(it->second.across ? tr("its largest diameter") : tr("its centre"));
             } else {
                 positionNote_ = tr("The machine cannot bring the tool to the work: the turret "
                                    "at home.");
@@ -387,9 +388,9 @@ void TurretPreview::redraw() {
         const machine::Axis* axis = machine_->axis(name);
         const double v = position_.value(name);
         if (axis && (v < axis->min - 1e-6 || v > axis->max + 1e-6)) {
-            positionNote_ += QStringLiteral(" ") + tr("%1 %2 is beyond its travel.")
-                                                       .arg(QString::fromLatin1(name))
-                                                       .arg(v, 0, 'f', 3);
+            positionNote_ +=
+                QStringLiteral(" ") +
+                tr("%1 %2 is beyond its travel.").arg(QString::fromLatin1(name)).arg(v, 0, 'f', 3);
         }
     }
 

@@ -284,15 +284,16 @@ TEST_CASE("which holders fit an insert", "[tooling][turning]") {
     }
     SECTION("the hand does not: the tool takes it from the holder") {
         tool.insert.hand = "R";
-        CHECK(holderMismatches(tool, makeTurningHolder(*parseDesignation("PCLNL 2525M 12"))).empty());
+        CHECK(
+            holderMismatches(tool, makeTurningHolder(*parseDesignation("PCLNL 2525M 12"))).empty());
     }
     SECTION("locking, when it is set") {
         const auto with = [&](InsertLocking locking, const char* holder) {
             tool.insert.locking = locking;
             return holderMismatches(tool, makeTurningHolder(*parseDesignation(holder)));
         };
-        for (const char* holder : {"PCLNR 2525M 12", "CCLNR 2525M 12", "MCLNR 2525M 12",
-                                   "SCLNR 2525M 12"}) {
+        for (const char* holder :
+             {"PCLNR 2525M 12", "CCLNR 2525M 12", "MCLNR 2525M 12", "SCLNR 2525M 12"}) {
             CHECK(with(InsertLocking::NotSet, holder).empty());
         }
         CHECK(with(InsertLocking::CylindricalHole, "PCLNR 2525M 12").empty());

@@ -224,7 +224,7 @@ TEST_CASE("machine files keep the model and its meshes next to them", "[machine]
     head.carrier = "Z";
     head.offset = m.model.spindlePoint;
     head.collides = false;
-    cradle.shown = false; // hidden in the views, saved with the machine
+    cradle.shown = false;  // hidden in the views, saved with the machine
     base.enclosure = true; // hidden with the enclosure, saved with the machine
     m.model.parts = {base, cradle, head};
     REQUIRE(m.validate().empty());

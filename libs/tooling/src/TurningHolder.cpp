@@ -631,8 +631,8 @@ std::vector<TurningToolPart> turningToolParts(const Tool& tool, const Holder* ho
     if (holder->stick) {
         const TurningStick& s = *holder->stick;
         for (const geom2d::Polyline& piece : turningBody(tool, holder, side, awayFromChuck)) {
-            parts.push_back({piece, s.bar ? -0.5 * s.width : -s.width, s.bar ? 0.5 * s.width : 0.0,
-                             s.bar});
+            parts.push_back(
+                {piece, s.bar ? -0.5 * s.width : -s.width, s.bar ? 0.5 * s.width : 0.0, s.bar});
         }
         return parts;
     }

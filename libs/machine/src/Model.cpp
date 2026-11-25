@@ -109,8 +109,8 @@ Transform3 ModelPart::placement() const {
 bool ModelPart::operator==(const ModelPart& o) const {
     return name == o.name && carrier == o.carrier && offset == o.offset && rotation == o.rotation &&
            colour == o.colour && collides == o.collides && shown == o.shown &&
-           enclosure == o.enclosure && step == o.step &&
-           mesh == o.mesh && (!mesh.empty() || !step.empty() || geometry == o.geometry);
+           enclosure == o.enclosure && step == o.step && mesh == o.mesh &&
+           (!mesh.empty() || !step.empty() || geometry == o.geometry);
 }
 
 const ModelAxis* MachineModel::axis(std::string_view axisName) const {

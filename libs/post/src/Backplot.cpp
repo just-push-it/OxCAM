@@ -240,7 +240,9 @@ BackplotResult backplot(std::string_view gcode, const BackplotOptions& options) 
                 wrapBlock = true;
                 break;
             case 1070: // Haas's: R or Q the cylinder, neither for off; Y a length on it
-                wrapYRadius = has('R') ? toMm(w['R'], unit) : has('Q') ? toMm(w['Q'], unit) / 2.0 : 0.0;
+                wrapYRadius = has('R')   ? toMm(w['R'], unit)
+                              : has('Q') ? toMm(w['Q'], unit) / 2.0
+                                         : 0.0;
                 wrapBlock = true;
                 break;
             case 121:  // Fanuc's polar interpolation

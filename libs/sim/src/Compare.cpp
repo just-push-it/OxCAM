@@ -411,12 +411,10 @@ void computeCell(const DexelGrid& g, const RayColours& rc, CellGrid& cg, int ci,
                 if (rc.excess[idx] > 0.0f) {
                     ++excessCount;
                     excessSum += rc.excess[idx];
-                    excessLo = std::min(excessLo, rc.excessLo
-                                                      ? rc.excessLo[idx]
-                                                      : -std::numeric_limits<float>::max());
-                    excessHi = std::max(excessHi, rc.excessHi
-                                                      ? rc.excessHi[idx]
-                                                      : std::numeric_limits<float>::max());
+                    excessLo = std::min(excessLo, rc.excessLo ? rc.excessLo[idx]
+                                                              : -std::numeric_limits<float>::max());
+                    excessHi = std::max(excessHi, rc.excessHi ? rc.excessHi[idx]
+                                                              : std::numeric_limits<float>::max());
                 }
             }
         }
@@ -467,8 +465,8 @@ struct RayDeviation {
     float gouge = 0.0f;   ///< Part material missing beyond the tolerance (0 below 1e-4).
     float gougeLo = 0.0f; ///< Where along the ray it is missing.
     float gougeHi = 0.0f;
-    float excess = 0.0f; ///< Stock outside the part (0 when within the tolerance).
-    float beyond = 0.0f; ///< Stock beyond the tolerance (for the excess volume).
+    float excess = 0.0f;   ///< Stock outside the part (0 when within the tolerance).
+    float beyond = 0.0f;   ///< Stock beyond the tolerance (for the excess volume).
     float excessLo = 0.0f; ///< Where along the ray it is.
     float excessHi = 0.0f;
 };

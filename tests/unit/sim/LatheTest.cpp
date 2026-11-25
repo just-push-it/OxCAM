@@ -327,7 +327,9 @@ TEST_CASE("a thread cut beside the profile", "[sim][lathe]") {
     const auto pass = [&](LatheStock& s, double from, double to, double t0 = 0.0, double t1 = 1.0) {
         s.cutThread(shape, Vec2(from, tip), Vec2(to, tip), lead, t0, t1);
     };
-    const auto mesh = [](const LatheStock& s) { return latheStockMesh(s, 0.005, {}, {}); };
+    const auto mesh = [](const LatheStock& s) {
+        return latheStockMesh(s, 0.005, {}, {});
+    };
     const auto meshVolume = [](const DisplayMesh& m) {
         double sum = 0.0;
         for (std::size_t t = 0; t + 2 < m.indices.size(); t += 3) {
@@ -579,9 +581,8 @@ TEST_CASE("threading and parting off", "[strategies][lathe]") {
         CHECK(rates[1] == ctx.feeds.partOffEnd);
         // Without a distance nothing runs at it, so it need not be set.
         ctx.feeds.partOffEnd = 0.0;
-        CHECK_THROWS_WITH(
-            strategies::turnPartOff({part, stockProfile}, {}, ctx),
-            Catch::Matchers::ContainsSubstring("the part-off end feed of T1 is 0"));
+        CHECK_THROWS_WITH(strategies::turnPartOff({part, stockProfile}, {}, ctx),
+                          Catch::Matchers::ContainsSubstring("the part-off end feed of T1 is 0"));
         strategies::TurnPartOffParams straight;
         straight.slowDistance = 0.0;
         for (const auto& m : strategies::turnPartOff({part, stockProfile}, straight, ctx).moves) {

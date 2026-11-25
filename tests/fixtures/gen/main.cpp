@@ -707,10 +707,12 @@ TopoDS_Shape wrappedPart() {
                              zCylinder(0, 0, kDiameter, 0, kLength - kNeckLength));
     // An annular sector centred on +X.
     const double half = kSlotAngle / 2.0;
-    const gp_Ax2 axes(gp_Pnt(0, 0, kSlotZ0), gp_Dir(0, 0, 1), gp_Dir(std::cos(half), -std::sin(half), 0));
+    const gp_Ax2 axes(gp_Pnt(0, 0, kSlotZ0), gp_Dir(0, 0, 1),
+                      gp_Dir(std::cos(half), -std::sin(half), 0));
     const TopoDS_Shape sector =
         BRepPrimAPI_MakeCylinder(axes, R + 1.0, kSlotZ1 - kSlotZ0, kSlotAngle).Shape();
-    return cut(part, cut(sector, zCylinder(0, 0, kDiameter - 2.0 * kSlotDepth, kSlotZ0 - 1.0, kSlotZ1 + 1.0)));
+    return cut(part, cut(sector, zCylinder(0, 0, kDiameter - 2.0 * kSlotDepth, kSlotZ0 - 1.0,
+                                           kSlotZ1 + 1.0)));
 }
 
 TopoDS_Shape spoolPart() {
@@ -1275,7 +1277,9 @@ int main(int argc, char** argv) {
             op("Clear around the boss", "pocket2d", mill, {plateTop}, Json::object(),
                stepDown(5.0));
             op("M20 thread", "threadmill", thread, {},
-               Json{{"side", "external"}, {"major_diameter", kBossDiameter}, {"thread_depth", 12.0}});
+               Json{{"side", "external"},
+                    {"major_diameter", kBossDiameter},
+                    {"thread_depth", 12.0}});
             p.tools.tools = {mill, thread};
         });
         bossThread.save(out / "boss_thread_project.ocam");
@@ -1509,13 +1513,15 @@ int main(int argc, char** argv) {
             turn.name = "CNMG 120404";
             turn.insert.noseRadius = 0.4;
             const auto makeMill = [](int number, double diameter) {
-                tooling::Tool t = withPreset(tooling::makeFlatEndMill(number, diameter, 20.0, 60.0));
+                tooling::Tool t =
+                    withPreset(tooling::makeFlatEndMill(number, diameter, 20.0, 60.0));
                 t.presets.front().surfaceSpeed = 1000.0; // 60 m/min: within the live tool's limit
                 return t;
             };
             const tooling::Tool mill = makeMill(2, 6.0);
             const tooling::Tool boringMill = makeMill(7, 9.0);
-            tooling::Tool threadMill = tooling::makeDefaultTool(tooling::ToolType::ThreadMill, 3, 6.0);
+            tooling::Tool threadMill =
+                tooling::makeDefaultTool(tooling::ToolType::ThreadMill, 3, 6.0);
             threadMill.mill.threadPitch = kThreadPitch;
             threadMill.mill.shankDiameter = 4.0; // it has to fit the hole off the hole's centre
             threadMill.mill.fluteLength = 20.0;
@@ -1523,8 +1529,8 @@ int main(int argc, char** argv) {
             threadMill.presets = {tooling::defaultPreset(threadMill)};
             threadMill.presets.front().surfaceSpeed = 1000.0; // 60 m/min, as the mills
             const auto makeDrill = [](int number, double diameter) {
-                tooling::Tool drill = tooling::makeDefaultTool(tooling::ToolType::Drill, number,
-                                                               diameter);
+                tooling::Tool drill =
+                    tooling::makeDefaultTool(tooling::ToolType::Drill, number, diameter);
                 drill.mill.shankDiameter = diameter;
                 drill.mill.fluteLength = 40.0;
                 drill.mill.overallLength = 80.0;
@@ -1554,7 +1560,8 @@ int main(int argc, char** argv) {
             };
             // The flat: from outside along the WCS's +X, its top the flat (WCS z 0 is the front).
             const document::ToolOrientation flat{
-                document::Frame{Vec3(kFlatX, 0.0, -kLength / 2.0), Vec3::UnitY(), Vec3::UnitX()}, 0};
+                document::Frame{Vec3(kFlatX, 0.0, -kLength / 2.0), Vec3::UnitY(), Vec3::UnitX()},
+                0};
             const Json liveHole{{"drive", "live"}};
             const Json liveDrill{{"drive", "live"}, {"depth_mode", "tip"}};
             op("Face", "turn_face", turn, Json::object());
@@ -1599,7 +1606,8 @@ int main(int argc, char** argv) {
             turn = withPreset(turn);
             tooling::Tool mill = withPreset(tooling::makeFlatEndMill(2, 6.0, 20.0, 60.0));
             mill.presets.front().surfaceSpeed = 1000.0; // 60 m/min: within the live tool's limit
-            auto op = [&](const char* name, const char* type, const tooling::Tool& tool, Json params) {
+            auto op = [&](const char* name, const char* type, const tooling::Tool& tool,
+                          Json params) {
                 document::Operation o;
                 o.name = name;
                 o.type = type;
@@ -2212,8 +2220,7 @@ int main(int argc, char** argv) {
                    stepDown(3.0));
                 document::Operation& tilted =
                     op("Tilted rest rough", "zlevel_rough", side, {},
-                       Json{{"rest_machining", true}, {"fine_step_down", 0.0}},
-                       stepDown(2.0));
+                       Json{{"rest_machining", true}, {"fine_step_down", 0.0}}, stepDown(2.0));
                 const double a = 20.0 * std::numbers::pi / 180.0;
                 tilted.orientation =
                     document::ToolOrientation{document::Frame{Vec3::Zero(), Vec3::UnitX(),

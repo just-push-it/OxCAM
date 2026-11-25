@@ -919,7 +919,8 @@ std::vector<Collision> tapsWithoutAHole(const Stock& stock, const toolpath::Tool
             simulateMoves(probe, shape, stroke, 0, 1, options, cancel);
             const double left = probe.volume();
             const double solid = (volume - left) / area;
-            if (solid > std::max(0.5 * stock.resolution(), tooling::tapPointAllowance(coreRadius))) {
+            if (solid >
+                std::max(0.5 * stock.resolution(), tooling::tapPointAllowance(coreRadius))) {
                 out.push_back({CollisionKind::NoHole, k, k, m.end, solid});
             }
             volume = left;

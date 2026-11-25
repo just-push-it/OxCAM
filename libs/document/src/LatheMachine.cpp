@@ -54,10 +54,9 @@ std::vector<Vec2> insetOutline(const geom2d::Polyline& outline, double inset) {
     if (in.empty()) {
         return outline.discretize(0.05); // thinner than the inset: as it is
     }
-    const auto biggest =
-        std::max_element(in.begin(), in.end(), [](const geom2d::Region& a, const geom2d::Region& b) {
-            return a.area() < b.area();
-        });
+    const auto biggest = std::max_element(
+        in.begin(), in.end(),
+        [](const geom2d::Region& a, const geom2d::Region& b) { return a.area() < b.area(); });
     return biggest->outer.discretize(0.05);
 }
 
@@ -97,15 +96,14 @@ std::vector<sim::TurretTool::Solid> toolSolids(const tooling::Tool& tool,
                     box.extend(p);
                 }
                 const Vec2 size = box.max - box.min;
-                out.push_back(
-                    {"holder", sim::roundPrism(Vec3(0.5 * (box.min.y() + box.max.y()), 0.0,
-                                                    box.min.x() + kBodyInset),
-                                               Vec3::UnitZ(), 0.5 * size.y() - kBodyInset,
-                                               size.x() - 2.0 * kBodyInset)});
+                out.push_back({"holder", sim::roundPrism(Vec3(0.5 * (box.min.y() + box.max.y()),
+                                                              0.0, box.min.x() + kBodyInset),
+                                                         Vec3::UnitZ(), 0.5 * size.y() - kBodyInset,
+                                                         size.x() - 2.0 * kBodyInset)});
             } else {
-                out.push_back({"holder", sim::platePrism(insetOutline(part.outline, kBodyInset),
-                                                         part.low + kBodyInset,
-                                                         part.high - kBodyInset)});
+                out.push_back(
+                    {"holder", sim::platePrism(insetOutline(part.outline, kBodyInset),
+                                               part.low + kBodyInset, part.high - kBodyInset)});
             }
         }
         return out;
@@ -637,8 +635,7 @@ std::vector<sim::TurretTool> turretTools(const Document& doc, const TurretLoad& 
 
 std::vector<sim::LatheWorkBody> latheWorkBodies(const Document& doc, const Setup& setup,
                                                 const machine::Machine& machine,
-                                                const machine::WorkMount& mount,
-                                                double* tailstockW,
+                                                const machine::WorkMount& mount, double* tailstockW,
                                                 std::vector<std::string>* warnings) {
     const Project& project = doc.project();
     const machine::MachineModel model = machine::effectiveModel(machine);

@@ -216,9 +216,10 @@ WorkholdingSetupDialog::WorkholdingSetupDialog(const document::Document& doc, co
             return;
         }
         if (inLibrary(*id) &&
-            QMessageBox::question(this, tr("Save to library"),
-                                  tr("Replace the library's %1 with this project's copy?")
-                                      .arg(item->text(0))) != QMessageBox::Yes) {
+            QMessageBox::question(
+                this, tr("Save to library"),
+                tr("Replace the library's %1 with this project's copy?").arg(item->text(0))) !=
+                QMessageBox::Yes) {
             return;
         }
         try {
@@ -414,7 +415,8 @@ void WorkholdingSetupDialog::fillCopies() {
     for (const WorkholdingTemplate& t : p.workholdings) {
         QStringList users;
         for (const document::Setup& s : p.setups) {
-            if (s.workholding && (s.workholding->templateId == t.id || s.workholding->jawSet == t.id)) {
+            if (s.workholding &&
+                (s.workholding->templateId == t.id || s.workholding->jawSet == t.id)) {
                 users << qs(s.name);
             }
         }
@@ -528,7 +530,8 @@ void WorkholdingSetupDialog::jawsChosen() {
     const auto source = static_cast<Source>(item->data(0, kSourceRole).toInt());
     const auto id = Uuid::parse(ss(item->data(0, kIdRole).toString()));
     const std::string option = ss(item->data(0, kOptionRole).toString());
-    const auto place = [&](const std::string& label, const std::function<void(SetupWorkholding&)>& f) {
+    const auto place = [&](const std::string& label,
+                           const std::function<void(SetupWorkholding&)>& f) {
         doc_.modify(label, [&](document::Project& p) {
             f(*p.findSetup(setupId_)->workholding);
             document::removeUnusedWorkholdings(p);
@@ -605,9 +608,10 @@ void WorkholdingSetupDialog::updatePreview() {
         what = t ? qs(t->name) : tr("(missing)");
         if (set && set->jawSet) {
             const document::JawOption* o = set->jawSet->findOption(s.workholding->jawOption);
-            what += tr(", with %1").arg(o && set->jawSet->options.size() > 1
-                                            ? tr("%1 (%2)").arg(qs(set->name), qs(o->name))
-                                            : qs(set->name));
+            what += tr(", with %1")
+                        .arg(o && set->jawSet->options.size() > 1
+                                 ? tr("%1 (%2)").arg(qs(set->name), qs(o->name))
+                                 : qs(set->name));
         }
         try {
             if (const auto pose = document::shownWorkholdingPose(doc_, s)) {
@@ -708,8 +712,9 @@ void WorkholdingSetupDialog::fillPlacement() {
     }
     const SetupWorkholding& w = *s.workholding;
     const document::StockHolding* holding =
-        t->holdings.empty() ? nullptr
-                            : (w.holding.empty() ? &t->holdings.front() : t->findHolding(w.holding));
+        t->holdings.empty()
+            ? nullptr
+            : (w.holding.empty() ? &t->holdings.front() : t->findHolding(w.holding));
     if (t->holdings.size() > 1) {
         auto* choice = new QComboBox;
         choice->setObjectName(QStringLiteral("setupHolding"));
@@ -968,16 +973,16 @@ void WorkholdingSetupDialog::fillPlacement() {
     QString text;
     if (placed) {
         const document::JawPlacement& j = *placed;
-        text = tr("%1 holds Ø%2, master jaw 1 at %3 (its travel: %4 to %5).")
-                   .arg(qs(j.step), formatLength(j.gripDiameter, unit_),
-                        formatLength(j.travel, unit_), formatLength(j.minTravel, unit_),
-                        formatLength(j.maxTravel, unit_));
+        text =
+            tr("%1 holds Ø%2, master jaw 1 at %3 (its travel: %4 to %5).")
+                .arg(qs(j.step), formatLength(j.gripDiameter, unit_), formatLength(j.travel, unit_),
+                     formatLength(j.minTravel, unit_), formatLength(j.maxTravel, unit_));
         if (j.boreDiameter) {
-            text += QLatin1Char(' ') +
-                    tr("Bored to Ø%1, %2 deep, clamping Ø%3 with master jaw 1 at %4.")
-                        .arg(formatLength(*j.boreDiameter, unit_), formatLength(j.boreDepth, unit_),
-                             formatLength(j.clampDiameter, unit_),
-                             formatLength(j.boringTravel, unit_));
+            text +=
+                QLatin1Char(' ') +
+                tr("Bored to Ø%1, %2 deep, clamping Ø%3 with master jaw 1 at %4.")
+                    .arg(formatLength(*j.boreDiameter, unit_), formatLength(j.boreDepth, unit_),
+                         formatLength(j.clampDiameter, unit_), formatLength(j.boringTravel, unit_));
         }
     }
     auto* note = new QLabel(text);
