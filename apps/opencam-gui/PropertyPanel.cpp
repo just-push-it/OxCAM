@@ -845,7 +845,7 @@ void PropertyPanel::buildSetup(const Setup& setup) {
     }
     machineBox->setCurrentIndex(mi);
     connect(machineBox, &QComboBox::currentIndexChanged, this,
-            [this, edit, machineBox, mi, library, kSourceRole, setupId = setup.id](int i) {
+            [this, edit, machineBox, mi, library, setupId = setup.id](int i) {
                 const auto source =
                     static_cast<Source>(machineBox->itemData(i, kSourceRole).toInt());
                 const std::string machineId = machineBox->itemData(i).toString().toStdString();

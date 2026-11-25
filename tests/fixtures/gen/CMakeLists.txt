@@ -30,7 +30,10 @@ list(APPEND fixtures ${OCAM_FIXTURE_DIR}/sample_project.ocam ${OCAM_FIXTURE_DIR}
 
 add_custom_command(
     OUTPUT ${fixtures}
-    COMMAND oxcam-fixture-gen ${OCAM_FIXTURE_DIR}
+    # LeakSanitizer fails the process on any leak at exit. OpenCASCADE's
+    # TPrsStd_DriverTable::Get() leaves one 8-byte singleton. Tests still check leaks.
+    COMMAND ${CMAKE_COMMAND} -E env ASAN_OPTIONS=detect_leaks=0
+            $<TARGET_FILE:oxcam-fixture-gen> ${OCAM_FIXTURE_DIR}
     DEPENDS oxcam-fixture-gen
     COMMENT "Generating STEP fixtures"
     VERBATIM)

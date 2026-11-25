@@ -10,6 +10,8 @@
 TEST_CASE("the memory cap stops a runaway allocation", "[.][memorycap]") {
     constexpr std::size_t size = std::size_t{3} * 1024 * 1024 * 1024;
     const std::vector<char> runaway(size, 'x');
-    CHECK(runaway.size() == size);
+    // Clang removes an allocation whose bytes are never read, so the cap never sees it.
+    const volatile char touched = runaway[size / 2];
+    CHECK(touched == 'x');
     FAIL("the memory cap did not stop the allocation");
 }

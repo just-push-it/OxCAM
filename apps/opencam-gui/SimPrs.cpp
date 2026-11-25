@@ -384,8 +384,7 @@ void LinesPrs::Compute(const occ::handle<PrsMgr_PresentationManager>& /*manager*
     const Quantity_Color colour(((rgb_ >> 16) & 0xFF) / 255.0, ((rgb_ >> 8) & 0xFF) / 255.0,
                                 (rgb_ & 0xFF) / 255.0, Quantity_TOC_sRGB);
     occ::handle<Graphic3d_Group> group = prs->NewGroup();
-    group->SetGroupPrimitivesAspect(
-        new Graphic3d_AspectLine3d(colour, Aspect_TOL_DASH, static_cast<float>(width_)));
+    group->SetGroupPrimitivesAspect(new Graphic3d_AspectLine3d(colour, Aspect_TOL_DASH, width_));
     group->AddPrimitiveArray(array);
 }
 
