@@ -1,9 +1,5 @@
 # OxCAM
 
-> OxCAM is short for OxygenCAM; the program was formerly OpenCAM
-> ([ADR-0005](docs/adr/0005-oxcam-name.md)). A trademark and name search is required before any
-> public launch; see [docs/ip/IP-POLICY.md](docs/ip/IP-POLICY.md).
-
 OxCAM is a clean-room, open-source computer-aided manufacturing (CAM) application.
 
 Goals:
