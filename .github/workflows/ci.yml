@@ -61,7 +61,8 @@ jobs:
 
       - name: Install build tools (macOS)
         if: runner.os == 'macOS'
-        run: brew install ninja
+        # libb2 (pulled in by Qt) runs autoreconf and needs libtoolize.
+        run: brew install ninja autoconf autoconf-archive automake libtool
 
       # VsDevCmd is what ilammy/msvc-dev-cmd ran. That action is still Node 20 and has
       # no Node 24 release, so the developer environment is imported here instead.
