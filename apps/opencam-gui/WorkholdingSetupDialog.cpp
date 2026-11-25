@@ -897,7 +897,7 @@ void WorkholdingSetupDialog::fillPlacement() {
                 auto* box = new LengthSpinBox(value, unit_, lo);
                 box->setObjectName(QString::fromLatin1(name));
                 box->setToolTip(tip);
-                connect(box, &LengthSpinBox::mmChanged, this, [this, set](double v) {
+                connect(box, &LengthSpinBox::mmChanged, this, [this, apply](double v) {
                     place("Change soft jaw bore", [&](SetupWorkholding& h) {
                         document::SoftBore b = h.softBore.value_or(document::SoftBore{});
                         apply(b, v);
