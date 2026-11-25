@@ -16,7 +16,8 @@ namespace ocam::gui {
 
 /// A colour as OpenCASCADE takes it (sRGB, as the user picked it).
 inline Quantity_Color toQuantity(const QColor& c) {
-    return Quantity_Color(c.redF(), c.greenF(), c.blueF(), Quantity_TOC_sRGB);
+    return Quantity_Color(static_cast<double>(c.redF()), static_cast<double>(c.greenF()),
+                          static_cast<double>(c.blueF()), Quantity_TOC_sRGB);
 }
 
 struct ViewColors {

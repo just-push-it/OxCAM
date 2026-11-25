@@ -33,7 +33,8 @@ function(ocam_set_warnings target)
     endif()
 
     if(MSVC)
-        target_compile_options(${target} PRIVATE /utf-8 /Zc:__cplusplus /Zc:preprocessor)
+        # /Zi with a parallel build (Ninja, sccache) has several cl.exe processes write one PDB.
+        target_compile_options(${target} PRIVATE /utf-8 /Zc:__cplusplus /Zc:preprocessor /FS)
         # _CRT_SECURE_NO_WARNINGS: std::getenv (the diagnostics switches) is standard C++; MSVC's
         # suggestion of _dupenv_s is not portable.
         target_compile_definitions(${target} PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN _USE_MATH_DEFINES

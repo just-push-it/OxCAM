@@ -111,7 +111,7 @@ jobs:
 
       - name: Restore vcpkg binary cache
         id: vcpkg-cache
-        uses: actions/cache@v6
+        uses: actions/cache/restore@v6
         with:
           path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
           key: vcpkg-${{ runner.os }}-${{ matrix.triplet }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}-${{ matrix.deps }}
@@ -124,7 +124,7 @@ jobs:
 
       - name: Restore sccache
         id: sccache-cache
-        uses: actions/cache@v6
+        uses: actions/cache/restore@v6
         with:
           path: ${{ env.SCCACHE_DIR }}
           key: sccache-${{ runner.os }}-${{ matrix.preset }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}
@@ -173,6 +173,7 @@ jobs:
         run: python -m pip install "nanobind==2.13.0"
 
       - name: Configure
+        id: configure
         shell: bash
         run: |
           extra="-DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache"
@@ -181,8 +182,24 @@ jobs:
           fi
           cmake --preset ${{ matrix.preset }} $extra
 
+      # actions/cache only saves on a green job. Configure is the expensive part (OpenCASCADE,
+      # Qt), so keep that cache when the project itself fails to compile.
+      - name: Save vcpkg binary cache
+        if: steps.configure.outcome == 'success' && steps.vcpkg-cache.outputs.cache-hit != 'true' && !cancelled()
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: vcpkg-${{ runner.os }}-${{ matrix.triplet }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}-${{ matrix.deps }}
+
       - name: Build
         run: cmake --build --preset ${{ matrix.preset }}
+
+      - name: Save sccache
+        if: steps.configure.outcome == 'success' && steps.sccache-cache.outputs.cache-hit != 'true' && !cancelled()
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ env.SCCACHE_DIR }}
+          key: sccache-${{ runner.os }}-${{ matrix.preset }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}
 
       - name: sccache stats
         if: ${{ !cancelled() }}

@@ -226,7 +226,8 @@ namespace {
 double materialIn(const sim::IntervalList& ray, double lo, double hi) {
     double sum = 0.0;
     for (const sim::Interval& in : ray) {
-        sum += std::max(0.0, std::min<double>(in.hi, hi) - std::max<double>(in.lo, lo));
+        sum += std::max(0.0, std::min(static_cast<double>(in.hi), hi) -
+                                 std::max(static_cast<double>(in.lo), lo));
     }
     return sum;
 }
