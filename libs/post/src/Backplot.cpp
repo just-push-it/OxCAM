@@ -405,11 +405,11 @@ BackplotResult backplot(std::string_view gcode, const BackplotOptions& options) 
             continue; // reference return: position becomes machine home (not modelled)
         }
 
-        auto coordinate = [&](char axis, double current) {
-            if (!has(axis)) {
+        auto coordinate = [&](char letter, double current) {
+            if (!has(letter)) {
                 return current;
             }
-            const double v = toMm(w[axis], unit) * (options.lathe && axis == 'X' ? 0.5 : 1.0);
+            const double v = toMm(w[letter], unit) * (options.lathe && letter == 'X' ? 0.5 : 1.0);
             return absolute ? v : current + v;
         };
         bool hasRotary = false;
