@@ -95,7 +95,9 @@ TEST_CASE("smooth surface of a box is the box", "[sim][surface]") {
     CHECK(worst < 1e-4);
     // Flat faces and sharp edges: six normals only.
     for (const auto& n : m.normals) {
-        const double big = std::max({std::abs(n[0]), std::abs(n[1]), std::abs(n[2])});
+        const double big =
+            std::max({std::abs(static_cast<double>(n[0])), std::abs(static_cast<double>(n[1])),
+                      std::abs(static_cast<double>(n[2]))});
         CHECK(big == Approx(1.0).margin(1e-6));
     }
 }

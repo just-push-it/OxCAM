@@ -700,8 +700,9 @@ TEST_CASE("wrapping a pocket around a lathe's diameter", "[document][lathe][live
                         continue;
                     }
                     const auto& p = chunk->positions[v];
-                    const double z = p[2] - front;
-                    const double r = std::hypot(p[0], p[1]);
+                    const double z = static_cast<double>(p[2] - front);
+                    const double r =
+                        std::hypot(static_cast<double>(p[0]), static_cast<double>(p[1]));
                     const bool slot =
                         z > kSlotZ0 - 0.3 && z < kSlotZ1 + 0.3 &&
                         r > kDiameter / 2.0 - kSlotDepth - 0.3 &&
