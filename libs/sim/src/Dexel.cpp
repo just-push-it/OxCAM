@@ -60,7 +60,7 @@ bool subtract(IntervalList& list, double lo, double hi) {
 double totalLength(const IntervalList& list) {
     double sum = 0.0;
     for (const Interval& in : list) {
-        sum += static_cast<double>(in.hi) - in.lo;
+        sum += static_cast<double>(in.hi) - static_cast<double>(in.lo);
     }
     return sum;
 }
@@ -68,8 +68,8 @@ double totalLength(const IntervalList& list) {
 double overlapLength(const IntervalList& list, double lo, double hi) {
     double sum = 0.0;
     for (const Interval& in : list) {
-        const double a = std::max<double>(in.lo, lo);
-        const double b = std::min<double>(in.hi, hi);
+        const double a = std::max(static_cast<double>(in.lo), lo);
+        const double b = std::min(static_cast<double>(in.hi), hi);
         if (b > a) {
             sum += b - a;
         }
@@ -85,7 +85,8 @@ double topOf(const IntervalList& list) {
 double differenceLength(const IntervalList& a, const IntervalList& b) {
     double sum = 0.0;
     for (const Interval& in : a) {
-        sum += static_cast<double>(in.hi) - in.lo - overlapLength(b, in.lo, in.hi);
+        sum += static_cast<double>(in.hi) - static_cast<double>(in.lo) -
+               overlapLength(b, static_cast<double>(in.lo), static_cast<double>(in.hi));
     }
     return sum;
 }

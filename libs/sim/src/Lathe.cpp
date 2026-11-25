@@ -778,7 +778,7 @@ void fillRevolved(DexelGrid& g, const std::vector<std::vector<Vec2>>& loops,
             std::sort(hits.begin(), hits.end());
             IntervalList ray;
             for (const auto& [a, b] : hits) {
-                if (!ray.empty() && a <= ray.back().hi) {
+                if (!ray.empty() && a <= static_cast<double>(ray.back().hi)) {
                     ray.back().hi = std::max(ray.back().hi, static_cast<float>(b));
                 } else {
                     ray.push_back({static_cast<float>(a), static_cast<float>(b)});
