@@ -32,10 +32,10 @@ jobs:
           - { os: ubuntu-24.04, preset: ci-linux-gcc-headless, triplet: x64-linux, python: true }
           - { os: ubuntu-24.04, preset: ci-linux-clang-headless, triplet: x64-linux }
           - { os: ubuntu-24.04, preset: ci-linux-clang-asan, triplet: x64-linux }
-          - { os: macos-14, preset: ci-macos-clang-headless, triplet: arm64-osx }
+          - { os: macos-15, preset: ci-macos-clang-headless, triplet: arm64-osx }
           - { os: windows-2022, preset: ci-msvc-gui, triplet: x64-windows }
           - { os: ubuntu-24.04, preset: ci-linux-gcc-gui, triplet: x64-linux, test-wrapper: xvfb-run -a }
-          - { os: macos-14, preset: ci-macos-clang-gui, triplet: arm64-osx }
+          - { os: macos-15, preset: ci-macos-clang-gui, triplet: arm64-osx }
     steps:
       - uses: actions/checkout@v4
 
@@ -58,6 +58,19 @@ jobs:
       - name: Set up MSVC environment
         if: runner.os == 'Windows'
         uses: ilammy/msvc-dev-cmd@v1
+
+      # vcvarsall, which msvc-dev-cmd runs, exports Visual Studio's own VCPKG_ROOT
+      # and that replaces the job env for every later step. Point it back at the
+      # clone this workflow bootstraps, or git clone targets the VS tree and fails.
+      - name: Restore vcpkg root after MSVC setup
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          {
+            echo "VCPKG_ROOT<<EOF"
+            echo "${{ github.workspace }}/../vcpkg"
+            echo "EOF"
+          } >> "$GITHUB_ENV"
 
       - name: Bootstrap vcpkg
         shell: bash
