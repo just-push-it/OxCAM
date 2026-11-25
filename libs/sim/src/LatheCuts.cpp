@@ -17,6 +17,10 @@
 namespace ocam::sim {
 namespace {
 
+template <class P> Vec3 storedVec3(const P& p) {
+    return Vec3(static_cast<double>(p[0]), static_cast<double>(p[1]), static_cast<double>(p[2]));
+}
+
 // -- Thread passes ----------------------------------------------------------------------------
 
 /// A convex outline's lowest and highest v at each u.
@@ -634,12 +638,10 @@ DisplayMesh holeWall(const LatheHoleCut& h, const Rgb& rgb) {
         }
         for (int k = 0; k < kSegments; ++k) {
             const std::uint32_t v = first + 2u * static_cast<std::uint32_t>(k);
-            const Vec3 pa(mesh.positions[v][0], mesh.positions[v][1], mesh.positions[v][2]);
-            const Vec3 pb(mesh.positions[v + 3][0], mesh.positions[v + 3][1],
-                          mesh.positions[v + 3][2]);
-            const Vec3 pc(mesh.positions[v + 2][0], mesh.positions[v + 2][1],
-                          mesh.positions[v + 2][2]);
-            const Vec3 n(mesh.normals[v][0], mesh.normals[v][1], mesh.normals[v][2]);
+            const Vec3 pa = storedVec3(mesh.positions[v]);
+            const Vec3 pb = storedVec3(mesh.positions[v + 3]);
+            const Vec3 pc = storedVec3(mesh.positions[v + 2]);
+            const Vec3 n = storedVec3(mesh.normals[v]);
             if ((pb - pa).cross(pc - pa).dot(n) >= 0.0) {
                 for (const std::uint32_t t : {v, v + 1, v + 3, v, v + 3, v + 2}) {
                     mesh.indices.push_back(t);

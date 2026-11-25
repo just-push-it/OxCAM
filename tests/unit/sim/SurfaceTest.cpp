@@ -30,7 +30,8 @@ geom3d::Aabb3 box(const Vec3& lo, const Vec3& hi) {
 }
 
 Vec3 at(const DisplayMesh& m, std::uint32_t v) {
-    return Vec3(m.positions[v][0], m.positions[v][1], m.positions[v][2]);
+    return Vec3(static_cast<double>(m.positions[v][0]), static_cast<double>(m.positions[v][1]),
+                static_cast<double>(m.positions[v][2]));
 }
 
 /// Volume enclosed by the triangles (divergence theorem).

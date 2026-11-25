@@ -48,7 +48,9 @@ double enclosedVolume(const sim::DisplayMesh& m) {
     double v = 0.0;
     for (std::size_t t = 0; t + 2 < m.indices.size(); t += 3) {
         auto at = [&](std::uint32_t i) {
-            return Vec3(m.positions[i][0], m.positions[i][1], m.positions[i][2]);
+            return Vec3(static_cast<double>(m.positions[i][0]),
+                        static_cast<double>(m.positions[i][1]),
+                        static_cast<double>(m.positions[i][2]));
         };
         v += at(m.indices[t]).dot(at(m.indices[t + 1]).cross(at(m.indices[t + 2])));
     }

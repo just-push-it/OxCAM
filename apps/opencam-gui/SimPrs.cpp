@@ -79,8 +79,12 @@ void StockMeshPrs::Compute(const occ::handle<PrsMgr_PresentationManager>& /*mana
         Graphic3d_ArrayFlags_VertexNormal | Graphic3d_ArrayFlags_VertexColor);
     const Mat3 rot = toProject_.linear();
     for (std::size_t k = 0; k < m.positions.size(); ++k) {
-        const Vec3 p = toProject_ * Vec3(m.positions[k][0], m.positions[k][1], m.positions[k][2]);
-        const Vec3 n = rot * Vec3(m.normals[k][0], m.normals[k][1], m.normals[k][2]);
+        const Vec3 p = toProject_ * Vec3(static_cast<double>(m.positions[k][0]),
+                                         static_cast<double>(m.positions[k][1]),
+                                         static_cast<double>(m.positions[k][2]));
+        const Vec3 n =
+            rot * Vec3(static_cast<double>(m.normals[k][0]), static_cast<double>(m.normals[k][1]),
+                       static_cast<double>(m.normals[k][2]));
         const int v = tris->AddVertex(gp_Pnt(p.x(), p.y(), p.z()), gp_Dir(n.x(), n.y(), n.z()));
         const auto& c = m.colours[k];
         tris->SetVertexColor(

@@ -42,7 +42,8 @@ std::shared_ptr<const geom3d::Mesh> turnedMesh(const geom2d::Regions& area,
     auto mesh = std::make_shared<geom3d::Mesh>();
     mesh->vertices.reserve(shown.positions.size());
     for (const auto& p : shown.positions) {
-        mesh->vertices.push_back(frame * Vec3(p[0], p[1], p[2]));
+        mesh->vertices.push_back(frame * Vec3(static_cast<double>(p[0]), static_cast<double>(p[1]),
+                                              static_cast<double>(p[2])));
     }
     for (std::size_t i = 0; i + 2 < shown.indices.size(); i += 3) {
         mesh->triangles.push_back({shown.indices[i], shown.indices[i + 1], shown.indices[i + 2]});
