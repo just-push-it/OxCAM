@@ -179,7 +179,7 @@ TEST_CASE("picking on the demo machine's exact geometry", "[document][machine][s
     using namespace fixtures::trunnion_machine;
     const machine::Machine m = loadMachineFile(demoFile());
     const machine::MachineModel& model = m.model;
-    const machine::ModelPart& table = partNamed(m, "rotary table");
+    const machine::ModelPart table = partNamed(m, "rotary table");
 
     // The round table's rim: its centre line is Z through the table centre, at the rim's middle.
     const auto rim = find(table, cad::SubShapeType::Face, [](const cad::SubShapeGeometry& g) {
@@ -213,7 +213,7 @@ TEST_CASE("picking on the demo machine's exact geometry", "[document][machine][s
     // A vertex snaps exactly; the rim (round) has no plane for an axis to meet.
     CHECK_THROWS_AS(snapOnShape(model, table, *rim, Vec3(210, 0, -25), machine::Snap::AxisOnFace),
                     Error);
-    const machine::ModelPart& xTable = partNamed(m, "x table");
+    const machine::ModelPart xTable = partNamed(m, "x table");
     const auto corner = find(xTable, cad::SubShapeType::Vertex,
                              [](const cad::SubShapeGeometry& g) { return g.point.z() > -330.0; });
     REQUIRE(corner);
@@ -221,7 +221,7 @@ TEST_CASE("picking on the demo machine's exact geometry", "[document][machine][s
                corner->point));
 
     // The spindle: the nose's bottom rim gives the gauge point in one click.
-    const machine::ModelPart& nose = partNamed(m, "spindle nose");
+    const machine::ModelPart nose = partNamed(m, "spindle nose");
     const auto seat = find(nose, cad::SubShapeType::Edge, [](const cad::SubShapeGeometry& g) {
         return g.kind == Kind::Circle && std::abs(g.point.z() - kSpindleZ) < 1e-9;
     });

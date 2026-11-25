@@ -291,8 +291,9 @@ TEST_CASE("turning simulation with threads", "[.][turnbench]") {
         const double meshMs = msSince(t0);
         double lowest = 1e9;
         for (const auto& v : mesh.positions) {
-            if (v[2] < -2.0f && v[2] > -length) {
-                lowest = std::min(lowest, std::hypot(static_cast<double>(v[0]), v[1]));
+            if (static_cast<double>(v[2]) < -2.0 && static_cast<double>(v[2]) > -length) {
+                lowest = std::min(lowest,
+                                  std::hypot(static_cast<double>(v[0]), static_cast<double>(v[1])));
             }
         }
         std::printf("pitch %.2f x %.0f mm: mesh %.1f ms, %zu triangles, root found at %.4f "

@@ -702,9 +702,11 @@ TEST_CASE("wrapping a pocket around a lathe's diameter", "[document][lathe][live
                     const auto& p = chunk->positions[v];
                     const double z = p[2] - front;
                     const double r = std::hypot(p[0], p[1]);
-                    const bool slot = z > kSlotZ0 - 0.3 && z < kSlotZ1 + 0.3 &&
-                                      r > kDiameter / 2.0 - kSlotDepth - 0.3 &&
-                                      std::abs(std::atan2(p[1], p[0])) < kSlotAngle / 2.0 + 0.05;
+                    const bool slot =
+                        z > kSlotZ0 - 0.3 && z < kSlotZ1 + 0.3 &&
+                        r > kDiameter / 2.0 - kSlotDepth - 0.3 &&
+                        std::abs(std::atan2(static_cast<double>(p[1]), static_cast<double>(p[0]))) <
+                            kSlotAngle / 2.0 + 0.05;
                     // The insert's nose leaves its radius in the corner at the shoulder.
                     const bool nose = std::abs(z - (kLength - kNeckLength)) < 0.6 &&
                                       r < kNeckDiameter / 2.0 + 0.6;

@@ -1089,10 +1089,17 @@ TEST_CASE("a live tool's holes in the stock and against the part", "[document][l
         const auto& a = right.positions[right.indices[t]];
         const auto& b = right.positions[right.indices[t + 1]];
         const auto& c = right.positions[right.indices[t + 2]];
-        volume += (static_cast<double>(a[0]) * (b[1] * c[2] - b[2] * c[1]) +
-                   static_cast<double>(a[1]) * (b[2] * c[0] - b[0] * c[2]) +
-                   static_cast<double>(a[2]) * (b[0] * c[1] - b[1] * c[0])) /
-                  6.0;
+        const double ax = static_cast<double>(a[0]);
+        const double ay = static_cast<double>(a[1]);
+        const double az = static_cast<double>(a[2]);
+        const double bx = static_cast<double>(b[0]);
+        const double by = static_cast<double>(b[1]);
+        const double bz = static_cast<double>(b[2]);
+        const double cx = static_cast<double>(c[0]);
+        const double cy = static_cast<double>(c[1]);
+        const double cz = static_cast<double>(c[2]);
+        volume +=
+            (ax * (by * cz - bz * cy) + ay * (bz * cx - bx * cz) + az * (bx * cy - by * cx)) / 6.0;
     }
     CHECK(volume == Catch::Approx(last.volume()).epsilon(0.02));
     // Part way through, part of the bolt circle.
