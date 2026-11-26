@@ -458,19 +458,54 @@ SimulationPanel::SimulationPanel(OcctView* view, SnapshotFn snapshot, ToolpathsF
     showFixtures_ = new QCheckBox(tr("Workholding"), this);
     showFixtures_->setToolTip(tr("Show the setup's fixtures and vise"));
     showFixtures_->setChecked(true);
-    showPaths_ = new QCheckBox(tr("Paths"), this);
-    showPaths_->setToolTip(tr("Show the toolpaths over the simulated stock"));
-    showPaths_->setChecked(false);
+    showPart_->setToolTip(tr("Show the part: see-through over the stock (inside a transparent "
+                             "stock as it is)"));
     compare_ = new QCheckBox(tr("Compare"), this);
     compare_->setToolTip(tr("Colour the stock by its deviation from the part"));
     compare_->setChecked(true);
     options->addWidget(showTool_);
     options->addWidget(showPart_);
     options->addWidget(showFixtures_);
-    options->addWidget(showPaths_);
     options->addWidget(compare_);
     options->addStretch(1);
     layout->addLayout(options);
+
+    // The toolpaths over the stock: none, all, or only the trail behind the tool.
+    auto* pathsRow = new QHBoxLayout;
+    pathsRow->addWidget(new QLabel(tr("Paths"), this));
+    pathsCombo_ = new QComboBox(this);
+    pathsCombo_->setObjectName(QStringLiteral("simulationPaths"));
+    pathsCombo_->addItem(tr("None"), static_cast<int>(PathsShown::None));
+    pathsCombo_->addItem(tr("All"), static_cast<int>(PathsShown::All));
+    pathsCombo_->addItem(tr("Trail"), static_cast<int>(PathsShown::Trail));
+    pathsCombo_->setToolTip(tr("Toolpaths shown over the simulated stock: none, all of them, or "
+                               "only the trail: the path the tool has just come along"));
+    const int savedPaths = pathsCombo_->findData(
+        QSettings().value(QStringLiteral("simulationPaths"), 0).toInt());
+    pathsCombo_->setCurrentIndex(std::max(0, savedPaths));
+    trailLength_ = new QDoubleSpinBox(this);
+    trailLength_->setObjectName(QStringLiteral("simulationTrailLength"));
+    trailLength_->setSpecialValueText(tr("All of the operation"));
+    trailLength_->setKeyboardTracking(false);
+    trailLength_->setToolTip(tr("How much of the path behind the tool the trail shows, measured "
+                                "along the path (rapids included). At 0 it shows all of the "
+                                "operation's path cut so far."));
+    trailLengthMm_ = std::max(
+        0.0, QSettings().value(QStringLiteral("simulationTrailLength"), 50.0).toDouble());
+    pathsRow->addWidget(pathsCombo_);
+    pathsRow->addWidget(new QLabel(tr("Trail"), this));
+    pathsRow->addWidget(trailLength_, 1);
+    layout->addLayout(pathsRow);
+    connect(pathsCombo_, &QComboBox::currentIndexChanged, this, [this] {
+        QSettings().setValue(QStringLiteral("simulationPaths"), pathsCombo_->currentData());
+        rebuildControls();
+        requestFrame(lastFrame_);
+    });
+    connect(trailLength_, &QDoubleSpinBox::valueChanged, this, [this](double v) {
+        trailLengthMm_ = v * (unit_ == LengthUnit::Inch ? 25.4 : 1.0);
+        QSettings().setValue(QStringLiteral("simulationTrailLength"), trailLengthMm_);
+        requestFrame(lastFrame_);
+    });
 
     // The machine moving with its axes.
     auto* machineRow = new QHBoxLayout;
@@ -574,7 +609,6 @@ SimulationPanel::SimulationPanel(OcctView* view, SnapshotFn snapshot, ToolpathsF
     connect(showTool_, &QCheckBox::toggled, this, [this] { requestFrame(); });
     connect(showPart_, &QCheckBox::toggled, this, [this] { requestFrame(); });
     connect(showFixtures_, &QCheckBox::toggled, this, [this] { requestFrame(); });
-    connect(showPaths_, &QCheckBox::toggled, this, [this] { requestFrame(); });
     connect(showMachine_, &QCheckBox::toggled, this, [this](bool on) {
         QSettings().setValue(QStringLiteral("simulationMachine"), on);
         fitMachine_ = on;
@@ -938,7 +972,27 @@ void SimulationPanel::simulationDone(std::shared_ptr<const document::SetupSimula
     updateLegend();
     startTimes_.clear();
     startTips_.clear();
+    startLengths_.clear();
     for (const auto& op : sim_->operations) {
+        // How far along the path each move starts, for the trail.
+        std::vector<double> lengths{0.0};
+        Vec3 at = op.toolpath.start;
+        for (const toolpath::Move& m : op.toolpath.moves) {
+            double length = 0.0;
+            if (m.isArc()) {
+                const std::vector<Vec3> points = toolpath::sampleArc(at, m, 0.01);
+                for (std::size_t k = 1; k < points.size(); ++k) {
+                    length += (points[k] - points[k - 1]).norm();
+                }
+            } else if (m.kind != toolpath::MoveKind::Dwell) {
+                length = (m.end - at).norm();
+            }
+            lengths.push_back(lengths.back() + length);
+            if (m.kind != toolpath::MoveKind::Dwell) {
+                at = m.end;
+            }
+        }
+        startLengths_.push_back(std::move(lengths));
         const std::vector<double> durations = toolpath::moveDurations(op.toolpath);
         // A lathe's machine moves between operations before the first move.
         double first = 0.0;
@@ -1021,12 +1075,14 @@ void SimulationPanel::rebuildControls() {
     const bool has = static_cast<bool>(sim_);
     runButton_->setEnabled(!simRunning_ && lastSetup_.has_value());
     cancelButton_->setEnabled(simRunning_);
-    closeButton_->setEnabled(has && !simRunning_);
+    // Close leaves simulation mode even with no simulation shown.
+    closeButton_->setEnabled(!simRunning_);
     for (QWidget* w :
          std::initializer_list<QWidget*>{opCombo_, slider_, playButton_, speedCombo_, showTool_,
-                                         showPart_, showFixtures_, showPaths_, compare_}) {
+                                         showPart_, showFixtures_, pathsCombo_, compare_}) {
         w->setEnabled(has && !simRunning_);
     }
+    trailLength_->setEnabled(has && !simRunning_ && pathsShown() == PathsShown::Trail);
     compare_->setEnabled(has && !simRunning_ && !sim_->part.isEmpty());
     showMachine_->setEnabled(has && !simRunning_ && machineParts_);
     partList_->setVisible(has && machineParts_ && showMachine_->isChecked());
@@ -1382,6 +1438,86 @@ std::pair<Vec3, Vec3> SimulationPanel::toolPose(const Position& at) const {
         }
     }
     return {tip, axis};
+}
+
+SimulationPanel::PathsShown SimulationPanel::pathsShown() const {
+    return static_cast<PathsShown>(pathsCombo_->currentData().toInt());
+}
+
+std::shared_ptr<const toolpath::Toolpath> SimulationPanel::trailAt(const Position& at) const {
+    if (!sim_ || at.op < 0 || at.op >= static_cast<int>(sim_->operations.size()) ||
+        at.op >= static_cast<int>(startLengths_.size()) || at.between >= 0.0) {
+        return nullptr; // a lathe's machine between operations: the tool has come along none
+    }
+    const auto index = static_cast<std::size_t>(at.op);
+    const toolpath::Toolpath& path = sim_->operations[index].toolpath;
+    const std::vector<double>& lengths = startLengths_[index];
+    const std::vector<Vec3>& tips = startTips_[index];
+    const std::size_t n = path.moves.size();
+    if (n == 0 || lengths.size() != n + 1 || tips.size() != n + 1) {
+        return nullptr;
+    }
+    // From where the trail starts (move `first`, `firstFraction` of it) to the tool.
+    const std::size_t end = std::min(at.move, n);
+    const double endFraction = end < n ? std::clamp(at.fraction, 0.0, 1.0) : 0.0;
+    const double here =
+        lengths[end] + (end < n ? endFraction * (lengths[end + 1] - lengths[end]) : 0.0);
+    std::size_t first = 0;
+    double firstFraction = 0.0;
+    if (trailLengthMm_ > 0.0 && here > trailLengthMm_) {
+        const double from = here - trailLengthMm_;
+        const auto it = std::upper_bound(lengths.begin(),
+                                         lengths.begin() + static_cast<std::ptrdiff_t>(end) + 1,
+                                         from);
+        first = static_cast<std::size_t>(it - lengths.begin()) - 1;
+        const double length = lengths[first + 1] - lengths[first];
+        firstFraction =
+            length > 0.0 ? std::clamp((from - lengths[first]) / length, 0.0, 1.0) : 0.0;
+    }
+    auto trail = std::make_shared<toolpath::Toolpath>();
+    trail->cycles = path.cycles; // the moves that are cycles index them
+    trail->probes = path.probes;
+    // Move `k` from fraction t0 of it to t1 (cycles and dwells are not split: whole or none).
+    auto add = [&](std::size_t k, double t0, double t1) {
+        if (k >= n || t1 <= t0) {
+            return;
+        }
+        const toolpath::Move& m = path.moves[k];
+        Vec3 start = tips[k];
+        Vec3 axis = toolpath::axisBefore(path, k);
+        if (t0 > 0.0) {
+            const auto head = toolpath::partialMove(start, axis, m, t0);
+            if (!head) {
+                return;
+            }
+            start = head->end;
+            axis = head->axis;
+        }
+        // The rest of a move is the same move from where it got to.
+        const std::optional<toolpath::Move> piece =
+            t0 <= 0.0 && t1 >= 1.0 ? std::optional<toolpath::Move>(m)
+                                   : toolpath::partialMove(start, axis, m, (t1 - t0) / (1.0 - t0));
+        if (!piece) {
+            return;
+        }
+        if (trail->moves.empty()) {
+            trail->start = start;
+        }
+        trail->moves.push_back(*piece);
+    };
+    if (first == end) {
+        add(first, firstFraction, endFraction);
+    } else {
+        add(first, firstFraction, 1.0);
+        for (std::size_t k = first + 1; k < end; ++k) {
+            add(k, 0.0, 1.0);
+        }
+        add(end, 0.0, endFraction);
+    }
+    if (trail->moves.empty()) {
+        return nullptr;
+    }
+    return trail;
 }
 
 void SimulationPanel::updateMoveLabel() {
@@ -1821,8 +1957,11 @@ void SimulationPanel::startFrame(Position target) {
                 scene.showModels = showPart_->isChecked();
                 scene.showFixtures = showFixtures_->isChecked();
                 // The in-process stock preview always keeps the toolpaths; the simulation's
-                // Paths box applies to the simulation.
-                scene.showToolpaths = !dockShown_ || showPaths_->isChecked();
+                // Paths choice applies to the simulation.
+                scene.showToolpaths = !dockShown_ || pathsShown() == PathsShown::All;
+                if (dockShown_ && pathsShown() == PathsShown::Trail) {
+                    scene.trail = trailAt(target);
+                }
                 if (!sim->operations.empty()) {
                     const auto& op = sim->operations[static_cast<std::size_t>(target.op)];
                     if (showTool_->isChecked() && dockShown_) {
@@ -1971,6 +2110,14 @@ void SimulationPanel::setDisplayUnit(LengthUnit unit) {
     resolution_->setSingleStep(inch ? 0.001 : 0.025);
     resolution_->setSuffix(lengthSuffix(unit));
     resolution_->setValue(resolutionMm_ / factor);
+    if (trailLength_) {
+        const QSignalBlocker blockTrail(trailLength_);
+        trailLength_->setDecimals(inch ? 3 : 1);
+        trailLength_->setRange(0.0, 10000.0 / factor);
+        trailLength_->setSingleStep(inch ? 0.5 : 10.0);
+        trailLength_->setSuffix(lengthSuffix(unit));
+        trailLength_->setValue(trailLengthMm_ / factor);
+    }
 }
 
 void SimulationPanel::markStale() {

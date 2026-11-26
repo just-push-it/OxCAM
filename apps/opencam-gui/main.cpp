@@ -960,6 +960,17 @@ int main(int argc, char** argv) {
                        "<file>."),
         QStringLiteral("file"));
     parser.addOption(screenshotClosedSim);
+    const QCommandLineOption simPaths(
+        QStringLiteral("sim-paths"),
+        QStringLiteral("With --screenshot-sim, show the toolpaths over the stock: none, all or "
+                       "trail (the trail as long as <length> mm when given, 0 for all of it)."),
+        QStringLiteral("none|all|trail[:length]"));
+    parser.addOption(simPaths);
+    const QCommandLineOption simNewProjectTest(
+        QStringLiteral("sim-new-project-test"),
+        QStringLiteral("With --screenshot-sim, start a new project while simulating: simulation "
+                       "mode must end."));
+    parser.addOption(simNewProjectTest);
     const QCommandLineOption newTool(
         QStringLiteral("new-tool"),
         QStringLiteral("With --screenshot-tools, add a tool of <type> (e.g. bull_nose_end_mill) "
@@ -2375,6 +2386,7 @@ int main(int argc, char** argv) {
 
     bool simulated = false;
     bool positioned = false;
+    bool pathsSet = false;
     bool played = false;
     std::pair<int, std::size_t> playFrom;
     if (parser.isSet(smokeTest)) {
@@ -2404,6 +2416,42 @@ int main(int argc, char** argv) {
                 }
                 if (window.simulationBusy()) {
                     return;
+                }
+                if (parser.isSet(simNewProjectTest)) {
+                    poll->stop();
+                    if (!window.simulationMode()) {
+                        std::fprintf(stderr, "not in simulation mode after simulating\n");
+                        QApplication::exit(11);
+                        return;
+                    }
+                    window.commands().find(QStringLiteral("file.new"))->action->trigger();
+                    auto* dock = window.findChild<QDockWidget*>(QStringLiteral("simulationDock"));
+                    const bool left = !window.simulationMode() && dock && !dock->isVisible() &&
+                                      !window.view()->simulationShown();
+                    std::printf("new project: simulation mode %s\n", left ? "left" : "kept");
+                    std::fflush(stdout);
+                    QApplication::exit(left ? 0 : 11);
+                    return;
+                }
+                if (parser.isSet(simPaths) && !pathsSet) {
+                    pathsSet = true;
+                    const QStringList parts = parser.value(simPaths).split(QLatin1Char(':'));
+                    auto* combo =
+                        window.simulationPanel()->findChild<QComboBox*>(QStringLiteral("simulationPaths"));
+                    const int index = combo ? combo->findText(parts.value(0), Qt::MatchFixedString)
+                                            : -1;
+                    if (index < 0) {
+                        std::fprintf(stderr, "unknown --sim-paths choice\n");
+                        poll->stop();
+                        QApplication::exit(2);
+                        return;
+                    }
+                    combo->setCurrentIndex(index);
+                    if (parts.size() > 1) {
+                        window.simulationPanel()
+                            ->findChild<QDoubleSpinBox*>(QStringLiteral("simulationTrailLength"))
+                            ->setValue(parts.value(1).toDouble());
+                    }
                 }
                 if (parser.isSet(simPosition) && !positioned) {
                     positioned = true;

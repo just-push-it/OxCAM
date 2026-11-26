@@ -132,6 +132,8 @@ public:
         bool showModels = true;
         bool showFixtures = true; ///< Fixtures and workholding.
         bool showToolpaths = false;
+        /// The path the tool has just come along (WCS), drawn over the stock; nullptr: none.
+        std::shared_ptr<const toolpath::Toolpath> trail;
         std::optional<MachineScene> machine;
         /// Project frame -> view for the models, stock, toolpaths, tool and markers: identity
         /// keeps the part still (the machine moves around it); the table's motion keeps the
@@ -300,12 +302,18 @@ private:
     std::shared_ptr<const geom2d::Polyline> simInsert_;
     std::vector<Vec3> simCollisions_;
     std::vector<occ::handle<AIS_InteractiveObject>> simStockPrs_; ///< One per chunk.
+    std::shared_ptr<const toolpath::Toolpath> simTrail_;
+    occ::handle<AIS_InteractiveObject> simTrailPrs_;
     double stockTransparency_ = 0.0;
     bool sceneShowsModels_ = true;   ///< The simulation scene's own choice.
     bool sceneShowsFixtures_ = true; ///< The simulation scene's own choice.
-    /// Models hidden while simulating, unless the scene shows them or the stock is see-through
-    /// (the part then shows as a solid inside it); fixtures as the scene says.
+    /// While simulating, models show as the scene says; over an opaque stock a shown part is
+    /// drawn see-through on top of it (it would be inside it). Fixtures as the scene says.
     void applyModelVisibility();
+    bool modelsGhosted_ = false; ///< Models drawn see-through over the simulated stock.
+    static constexpr double kGhostTransparency = 0.6;
+    /// Draws a (non-fixture) model see-through over the stock, or as usual, as modelsGhosted_.
+    void ghostModel(const occ::handle<AIS_InteractiveObject>& ais);
     bool vertexPicking_ = false;
     bool lastClickShift_ = false;
     OutlineFn outlineHover_;
