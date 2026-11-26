@@ -18,7 +18,10 @@ namespace ocam {
 /// libc++ ships `std::from_chars` for integers only (Xcode 16 on the macOS CI runner),
 /// so that library parses with the C locale instead.
 inline bool parseFiniteDouble(std::string_view text, double& value) {
-    if (text.empty() || std::isspace(static_cast<unsigned char>(text.front()))) {
+    // from_chars rejects a leading '+'; the stream extractor accepts it. Reject it here so
+    // both paths agree. G-code tokenize still strips one leading '+' first, so "X+1" parses.
+    if (text.empty() || std::isspace(static_cast<unsigned char>(text.front())) ||
+        text.front() == '+') {
         return false;
     }
 #if defined(_LIBCPP_VERSION)
