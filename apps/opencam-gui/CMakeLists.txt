@@ -145,8 +145,10 @@ if(OCAM_LUPDATE)
         VERBATIM)
 endif()
 
-# Qt loads its platform plugin from <exe dir>/platforms. Copy it there so the build tree runs
-# without a deployment step (installers will use the Qt deploy tooling instead).
+# Qt loads its platform plugin from <exe dir>/platforms. Copy it there so the build tree runs,
+# and install a shared plugin into the CPack archive. A static plugin is linked into the
+# executable and is not a file to ship.
+include(GNUInstallDirs)
 foreach(plugin QWindowsIntegrationPlugin QCocoaIntegrationPlugin QXcbIntegrationPlugin)
     if(TARGET Qt6::${plugin})
         add_custom_command(TARGET oxcam-gui POST_BUILD
@@ -154,14 +156,13 @@ foreach(plugin QWindowsIntegrationPlugin QCocoaIntegrationPlugin QXcbIntegration
             COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Qt6::${plugin}>
                     $<TARGET_FILE_DIR:oxcam-gui>/platforms/
             VERBATIM)
+        get_target_property(_ocam_plugin_type Qt6::${plugin} TYPE)
+        if(_ocam_plugin_type STREQUAL "SHARED_LIBRARY" OR _ocam_plugin_type STREQUAL "MODULE_LIBRARY")
+            install(FILES $<TARGET_FILE:Qt6::${plugin}>
+                DESTINATION ${CMAKE_INSTALL_BINDIR}/platforms)
+        endif()
     endif()
 endforeach()
-
-if(WIN32 AND TARGET Qt6::QWindowsIntegrationPlugin)
-    include(GNUInstallDirs)
-    install(FILES $<TARGET_FILE:Qt6::QWindowsIntegrationPlugin>
-        DESTINATION ${CMAKE_INSTALL_BINDIR}/platforms)
-endif()
 
 if(OCAM_BUILD_TESTS)
     # Needs a display (use xvfb-run on headless Linux). Label "gui" so CI can select it.

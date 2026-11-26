@@ -28,8 +28,8 @@ if(WIN32)
         DIRECTORIES "$<IF:$<CONFIG:Debug>,${_vcpkg_root}/debug/bin,${_vcpkg_root}/bin>")
     # The Qt platform plugin is installed by apps/opencam-gui (where Qt is found).
 else()
-    # vcpkg's default Linux and macOS triplets link dependencies statically; Qt's platform
-    # plugin comes from the system or the Qt installation.
+    # vcpkg's default Linux and macOS triplets link dependencies statically. A shared Qt
+    # platform plugin, when the port builds one, is installed by apps/opencam-gui.
     install(TARGETS ${OCAM_INSTALL_TARGETS} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 endif()
 

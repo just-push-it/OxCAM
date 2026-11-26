@@ -1,0 +1,184 @@
+# SPDX-FileCopyrightText: OxCAM contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: ${{ matrix.preset }}
+    runs-on: ${{ matrix.os }}
+    env:
+      VCPKG_ROOT: ${{ github.workspace }}/vcpkg
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/vcpkg-cache
+      VCPKG_BINARY_SOURCES: "clear;files,${{ github.workspace }}/vcpkg-cache,readwrite"
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # deps is gui so this reuses the CI binary cache of the Qt feature set.
+          - { os: windows-2022, preset: msvc-release, triplet: x64-windows }
+          - { os: ubuntu-24.04, preset: linux-gcc-release, triplet: x64-linux }
+          - { os: macos-15, preset: macos-clang-release, triplet: arm64-osx }
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check the tag matches the project version
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          set -euo pipefail
+          project=$(sed -n 's/^    VERSION \([0-9][0-9.]*\)$/\1/p' CMakeLists.txt)
+          tag="${GITHUB_REF_NAME#v}"
+          if [ "$project" != "$tag" ]; then
+            echo "Tag v${tag} does not match CMake project version ${project}." >&2
+            exit 1
+          fi
+
+      - name: Install build tools (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build autoconf autoconf-archive automake libtool \
+            pkg-config bison python3-venv libx11-dev libxext-dev libxi-dev libxrandr-dev \
+            libxcursor-dev libxinerama-dev libxrender-dev libx11-xcb-dev '^libxcb.*-dev' \
+            libxkbcommon-dev libxkbcommon-x11-dev libgl1-mesa-dev libglu1-mesa-dev \
+            libegl1-mesa-dev libfontconfig1-dev
+
+      - name: Install build tools (macOS)
+        if: runner.os == 'macOS'
+        run: brew install ninja autoconf autoconf-archive automake libtool
+
+      - name: Set up MSVC environment
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          $install = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath | Select-Object -First 1
+          if (-not $install) { throw 'Visual Studio with the VC toolset was not found' }
+          $devcmd = Join-Path $install 'Common7\Tools\VsDevCmd.bat'
+          $lines = & cmd.exe /d /c "`"$devcmd`" -no_logo -arch=x64 -host_arch=x64 >nul 2>&1 && set"
+          if ($LASTEXITCODE -ne 0) { throw "VsDevCmd.bat failed with exit code $LASTEXITCODE" }
+          $delim = 'OXCAM_ENV_EOF'
+          foreach ($line in $lines) {
+            $line = $line -replace "`r$", ''
+            if ($line -notmatch '^([A-Za-z_][A-Za-z0-9_]*)=(.*)$') { continue }
+            $name = $Matches[1]
+            $value = $Matches[2]
+            if ($name -like 'GITHUB_*' -or $value.Contains($delim)) { continue }
+            [System.IO.File]::AppendAllText($env:GITHUB_ENV, "$name<<$delim`n$value`n$delim`n")
+          }
+
+      - name: Restore vcpkg root after MSVC setup
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          {
+            echo "VCPKG_ROOT<<EOF"
+            echo "${{ github.workspace }}/vcpkg"
+            echo "EOF"
+          } >> "$GITHUB_ENV"
+
+      - name: Bootstrap vcpkg
+        shell: bash
+        run: |
+          git clone --depth 1 https://github.com/microsoft/vcpkg "$VCPKG_ROOT"
+          mkdir -p "$VCPKG_DEFAULT_BINARY_CACHE"
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            "$VCPKG_ROOT/bootstrap-vcpkg.bat" -disableMetrics
+          else
+            "$VCPKG_ROOT/bootstrap-vcpkg.sh" -disableMetrics
+          fi
+
+      - name: Restore vcpkg binary cache
+        id: vcpkg-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: vcpkg-${{ runner.os }}-${{ matrix.triplet }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}-gui
+          restore-keys: |
+            vcpkg-${{ runner.os }}-${{ matrix.triplet }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}-
+            vcpkg-${{ runner.os }}-${{ matrix.triplet }}-
+
+      - name: Configure
+        id: configure
+        shell: bash
+        run: |
+          set -euo pipefail
+          extra="-DOCAM_BUILD_TESTS=OFF"
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            # RelWithDebInfo uses /Zi. Parallel cl writes one PDB and fails with C1041.
+            extra="$extra -DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded"
+          fi
+          cmake --preset "${{ matrix.preset }}" $extra
+
+      - name: Save vcpkg binary cache
+        if: steps.configure.outcome == 'success' && steps.vcpkg-cache.outputs.cache-hit != 'true' && !cancelled()
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: vcpkg-${{ runner.os }}-${{ matrix.triplet }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}-gui
+
+      - name: Package
+        shell: bash
+        run: cmake --build --preset "${{ matrix.preset }}" --target package
+
+      - name: Upload package
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.preset }}
+          path: build/${{ matrix.preset }}/OxCAM-*
+          if-no-files-found: error
+
+  publish:
+    name: publish
+    needs: package
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Publish the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          files=(dist/OxCAM-*)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No packages were downloaded." >&2
+            exit 1
+          fi
+          version="${GITHUB_REF_NAME#v}"
+          notes=$(mktemp)
+          {
+            echo "Prebuilt OxCAM ${version} for Windows (x64), Linux (x86_64) and macOS (Apple silicon)."
+            echo
+            echo 'Unpack the archive and run `bin/oxcam-gui` (on Windows, `bin\oxcam-gui.exe`). `bin/oxcam-cli` is the command-line tool. The archive also contains the bundled posts, tool libraries and the licence.'
+            echo
+            echo 'The G-code has not been validated on a physical controller yet. Dry-run every program.'
+          } > "$notes"
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" "${files[@]}" --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" "${files[@]}" \
+              --title "OxCAM ${version}" \
+              --notes-file "$notes"
+          fi
