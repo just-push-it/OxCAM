@@ -68,10 +68,6 @@ vendor's marketing name.
 - Descriptive (nominative) use only: "Fanuc-style generic post", "for Haas-style controls".
   Add a disclaimer where needed, and never use logos.
 - Feature names must not reuse vendor marks.
-- **Project name:** "OxCAM" (short for OxygenCAM), formerly OpenCAM: other projects use that name
-  or similar ones (for example, OpenCAMLib), so it was changed
-  ([ADR-0005](../adr/0005-oxcam-name.md)). Run a trademark and name search before any public
-  launch.
 
 ## Third-party code
 
