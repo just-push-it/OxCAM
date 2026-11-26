@@ -148,8 +148,19 @@ On Windows, run from an "x64 Native Tools" developer prompt (or after `vcvars64.
 The first GUI build is long: vcpkg compiles OpenCASCADE and Qt from source, and later builds
 reuse its binary cache. Tests run in parallel with `ctest --preset <preset> -j N`.
 
-**Package:** `cd build/msvc-release && cpack -C RelWithDebInfo` writes a relocatable ZIP
-(Windows) or TGZ.
+**Package:** `cmake --build --preset msvc-release --target package` writes a relocatable
+ZIP (Windows) or TGZ named `OxCAM-<version>-<system>-<arch>`.
+
+## Downloads
+
+Prebuilt archives are published on
+[GitHub Releases](https://github.com/just-push-it/OxCAM/releases) by
+[.github/workflows/release.yml](.github/workflows/release.yml). Each archive contains
+`oxcam-gui`, `oxcam-cli`, the bundled posts and tool libraries, and the licence. Unpack
+it and run `bin/oxcam-gui`.
+
+Push a tag that matches the version in `CMakeLists.txt` (`v0.1.0` for version 0.1.0) to
+publish that version. The same warning in [Status](#status) applies to these binaries.
 
 **Python bindings** (optional, needs nanobind):
 
