@@ -145,7 +145,7 @@ jobs:
   publish:
     name: publish
     needs: package
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -158,6 +158,9 @@ jobs:
       - name: Publish the GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
+          # This job downloads artifacts and does not check out the repo. gh
+          # resolves the repository from a git remote or from GH_REPO.
+          GH_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
           shopt -s nullglob
