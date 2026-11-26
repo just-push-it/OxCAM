@@ -633,6 +633,38 @@ TEST_CASE("Z-level roughing keeps the engagement within the limit",
             }
         }
     }
+    SECTION("rest roughing: a level under one this operation cut crosses the circles' backs") {
+        // The in-process stock is the whole block at every height: what stands over the lower
+        // level is what the upper level of this operation did not cut, not the stock before it.
+        // (Taken from the stock alone, the slot was all under material, no link at depth was
+        // clear, and the lower level's circles went round through the air.)
+        const auto plate = heightMesh(
+            [](double x, double y) {
+                return std::abs(x) <= 20.0 && std::abs(y) <= 6.35 ? -2.0 : 10.0;
+            },
+            -26, 26, -14, 14, 260, -1);
+        Harness hs(tooling::makeFlatEndMill(1, 6.35, 25.0, 60.0));
+        ZLevelRoughParams ps = p;
+        ps.stepoverRatio = 0.8;
+        const geom2d::Regions stock = box(-26, -14, 26, 14);
+        // The lower level (z = 0) replayed, as rest roughing and as plain roughing (no in-process
+        // stock, so nothing overhead): the same circles, their backs crossed alike.
+        const geom2d::Regions material = box(-19.65, -6.0, 19.65, 6.0);
+        const auto lower = [&](const toolpath::Toolpath& tp) {
+            return replay(tp, 0.0, 5.0, material, {Vec2(-20, -6.35), Vec2(20, 6.35)}, 3.175);
+        };
+        const Replay plain = lower(zLevelRough(plate, stock, 10.0, 0.0, ps, hs.context()));
+        ps.material = [&](double, double) { return stock; };
+        const auto tp = zLevelRough(plate, stock, 10.0, 0.0, ps, hs.context());
+        INFO("warnings: " << (tp.warnings.empty() ? "" : tp.warnings.front()));
+        const Replay rp = lower(tp);
+        INFO("largest at " << rp.at.transpose() << " on move " << rp.move << ", left "
+                           << rp.leftover << " mm2, idle " << rp.idle << " mm (plain "
+                           << plain.idle << " mm)");
+        // 319 mm in air with the stock alone overhead, 231 mm after.
+        CHECK(rp.idle < plain.idle + 10.0);
+        CHECK(rp.largest <= engagementAngle(0.8 * 6.35 + 0.3, 3.175) + 0.15);
+    }
     SECTION("an L-shaped boss in square stock is traced (open area), or circled when asked") {
         const auto boss = heightMesh(
             [](double x, double y) {

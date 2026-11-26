@@ -1034,12 +1034,13 @@ toolpath::Toolpath zLevelRough(const geom3d::Mesh& part, const Regions& stockOut
             geom2d::subtract(Regions{{Polyline::rectangle(around.min, around.max), {}}},
                              plan.forbidden, clip),
             aboveReach, clip);
+        // In rest roughing, the material above the level still standing: the in-process stock
+        // less what this operation's levels above have cut. (The in-process stock alone put the
+        // levels this operation had just cleared over every lower one, so no link at depth was
+        // clear there and the circles went round through the air.)
         Regions overhead;
         if (zp.material && std::isfinite(plan.zAbove)) {
-            overhead = geom2d::offset(
-                geom2d::subtract(zp.material(plan.zAbove, std::numeric_limits<double>::infinity()),
-                                 plan.partZone, clip),
-                r + 0.5 * rim, clip);
+            overhead = geom2d::offset(restAbove(plan.zAbove, plan.partZone), r + 0.5 * rim, clip);
         }
         LevelClearing in;
         in.area = item.piece;
