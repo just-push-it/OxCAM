@@ -114,7 +114,7 @@ void CommandRegistry::applyShortcuts() {
         auto* cycler = new QAction(window_);
         cycler->setShortcut(key);
         QObject::connect(cycler, &QAction::triggered, window_,
-                         [this, members = members] { cycle(members); });
+                         [this, group = members] { cycle(group); });
         window_->addAction(cycler);
         cyclers_.push_back(cycler);
     }

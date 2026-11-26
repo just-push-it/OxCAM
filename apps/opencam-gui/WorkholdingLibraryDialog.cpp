@@ -2101,7 +2101,8 @@ void WorkholdingLibraryDialog::updatePreview() {
         try {
             const document::DatumValue v = document::datumAt(w, w.datums[i].name, travel);
             const bool hot = static_cast<int>(i) == selectedDatum;
-            for (const Vec3& axis : {Vec3::UnitX(), Vec3::UnitY(), Vec3::UnitZ()}) {
+            const Vec3 axes[] = {Vec3::UnitX(), Vec3::UnitY(), Vec3::UnitZ()};
+            for (const Vec3& axis : axes) {
                 scene.lines.push_back({v.point - 3.0 * axis, v.point + 3.0 * axis, hot, 0xFF5050u});
             }
             if (!v.direction.isZero()) {

@@ -27,3 +27,10 @@ ocam_add_library(sim
         ocam::toolpath
     PRIVATE_DEPS
         TBB::tbb)
+
+# The dexel grid stores heights as float. Widening them to the double math types
+# is this library's boundary, and -Wdouble-promotion flags every one of those reads.
+# The rest of the project keeps the warning.
+if(NOT MSVC)
+    target_compile_options(ocam_sim PRIVATE -Wno-double-promotion)
+endif()

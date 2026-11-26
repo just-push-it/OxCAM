@@ -7,7 +7,6 @@
 #include <QComboBox>
 #include <QFont>
 #include <QStyle>
-
 #include <algorithm>
 
 namespace ocam::gui {

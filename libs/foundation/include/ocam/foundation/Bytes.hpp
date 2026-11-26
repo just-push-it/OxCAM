@@ -52,7 +52,9 @@ public:
     template <typename T> void array(const std::vector<T>& items) {
         static_assert(std::is_trivially_copyable_v<T>);
         u64(items.size());
-        out_.append(reinterpret_cast<const char*>(items.data()), items.size() * sizeof(T));
+        if (!items.empty()) {
+            out_.append(reinterpret_cast<const char*>(items.data()), items.size() * sizeof(T));
+        }
     }
 
     const std::string& bytes() const noexcept { return out_; }
@@ -108,7 +110,10 @@ public:
         static_assert(std::is_trivially_copyable_v<T>);
         const std::size_t n = count(sizeof(T));
         std::vector<T> items(n);
-        std::memcpy(items.data(), in_.data() + at_, n * sizeof(T));
+        // An empty vector's data() is null, and memcpy rejects a null pointer even for 0 bytes.
+        if (n > 0) {
+            std::memcpy(items.data(), in_.data() + at_, n * sizeof(T));
+        }
         at_ += n * sizeof(T);
         return items;
     }

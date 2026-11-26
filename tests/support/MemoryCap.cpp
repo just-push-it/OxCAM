@@ -33,7 +33,7 @@
 
 namespace {
 
-double capGb = 0.0;
+[[maybe_unused]] double capGb = 0.0;
 
 double requestedCapGb() {
 #ifdef _WIN32
@@ -53,6 +53,7 @@ double requestedCapGb() {
     return OCAM_MEMORY_CAP_DEFAULT_GB;
 }
 
+#if !defined(OCAM_MEMORY_CAP_SANITIZED) && (defined(_WIN32) || defined(__linux__))
 /// The allocation failed: say why, rather than leave a test to fail in some unrelated way.
 void capReached() {
     std::fprintf(stderr,
@@ -62,6 +63,7 @@ void capReached() {
     std::fflush(stderr);
     std::_Exit(99);
 }
+#endif
 
 bool applyCap() {
     capGb = requestedCapGb();

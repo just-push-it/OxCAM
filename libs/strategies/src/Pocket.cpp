@@ -941,8 +941,8 @@ toolpath::Toolpath zLevelRough(const geom3d::Mesh& part, const Regions& stockOut
         for (std::size_t i = 0; i < items.size(); ++i) {
             byGroup[i] = i;
         }
-        std::stable_sort(byGroup.begin(), byGroup.end(), [&](std::size_t a, std::size_t b) {
-            return rank[find(a)] < rank[find(b)];
+        std::stable_sort(byGroup.begin(), byGroup.end(), [&](std::size_t left, std::size_t right) {
+            return rank[find(left)] < rank[find(right)];
         });
         std::vector<Item> ordered;
         ordered.reserve(items.size());
@@ -971,22 +971,23 @@ toolpath::Toolpath zLevelRough(const geom3d::Mesh& part, const Regions& stockOut
     // what the levels cut so far took, slab by slab (between every slab boundary above z, less
     // the regions of the cuts whose slab spans it).
     const auto restAbove = [&](double z, const Regions& partZone) {
-        std::vector<double> bounds{z, std::numeric_limits<double>::infinity()};
+        std::vector<double> slabs{z, std::numeric_limits<double>::infinity()};
         for (const RestCut& c : restCuts) {
-            for (const double b : {c.lo, c.hi}) {
-                if (b > z + 1e-9 && std::isfinite(b)) {
-                    bounds.push_back(b);
+            for (const double edge : {c.lo, c.hi}) {
+                if (edge > z + 1e-9 && std::isfinite(edge)) {
+                    slabs.push_back(edge);
                 }
             }
         }
-        std::sort(bounds.begin(), bounds.end());
-        bounds.erase(std::unique(bounds.begin(), bounds.end(),
-                                 [](double a, double b) { return std::abs(a - b) < 1e-9; }),
-                     bounds.end());
+        std::sort(slabs.begin(), slabs.end());
+        slabs.erase(
+            std::unique(slabs.begin(), slabs.end(),
+                        [](double left, double right) { return std::abs(left - right) < 1e-9; }),
+            slabs.end());
         Regions standing;
-        for (std::size_t k = 0; k + 1 < bounds.size(); ++k) {
-            const double lo = bounds[k];
-            const double hi = bounds[k + 1];
+        for (std::size_t k = 0; k + 1 < slabs.size(); ++k) {
+            const double lo = slabs[k];
+            const double hi = slabs[k + 1];
             Regions slab = geom2d::subtract(zp.material(lo, hi), partZone, clip);
             for (const RestCut& c : restCuts) {
                 if (c.lo <= lo + 1e-9 && c.hi >= hi - 1e-9) {

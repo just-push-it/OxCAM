@@ -6,13 +6,13 @@
 #include "ocam/post/Post.hpp"
 
 #include <ocam/foundation/Error.hpp>
+#include <ocam/foundation/Parse.hpp>
 #include <ocam/machine/Kinematics.hpp>
 
 #include <fmt/format.h>
 
 #include <algorithm>
 #include <cctype>
-#include <charconv>
 #include <cmath>
 #include <limits>
 #include <map>
@@ -66,8 +66,7 @@ std::vector<Word> tokenize(std::string_view line, int lineNo) {
             number.push_back('0');
         }
         double value = 0.0;
-        const auto res = std::from_chars(number.data(), number.data() + number.size(), value);
-        if (res.ec != std::errc() || res.ptr != number.data() + number.size()) {
+        if (!parseFiniteDouble(number, value)) {
             throw Error(ErrorCode::Parse,
                         fmt::format("line {}: invalid number '{}'", lineNo, number));
         }
@@ -240,7 +239,9 @@ BackplotResult backplot(std::string_view gcode, const BackplotOptions& options) 
                 wrapBlock = true;
                 break;
             case 1070: // Haas's: R or Q the cylinder, neither for off; Y a length on it
-                wrapYRadius = has('R') ? toMm(w['R'], unit) : has('Q') ? toMm(w['Q'], unit) / 2.0 : 0.0;
+                wrapYRadius = has('R')   ? toMm(w['R'], unit)
+                              : has('Q') ? toMm(w['Q'], unit) / 2.0
+                                         : 0.0;
                 wrapBlock = true;
                 break;
             case 121:  // Fanuc's polar interpolation
@@ -404,11 +405,11 @@ BackplotResult backplot(std::string_view gcode, const BackplotOptions& options) 
             continue; // reference return: position becomes machine home (not modelled)
         }
 
-        auto coordinate = [&](char axis, double current) {
-            if (!has(axis)) {
+        auto coordinate = [&](char letter, double current) {
+            if (!has(letter)) {
                 return current;
             }
-            const double v = toMm(w[axis], unit) * (options.lathe && axis == 'X' ? 0.5 : 1.0);
+            const double v = toMm(w[letter], unit) * (options.lathe && letter == 'X' ? 0.5 : 1.0);
             return absolute ? v : current + v;
         };
         bool hasRotary = false;

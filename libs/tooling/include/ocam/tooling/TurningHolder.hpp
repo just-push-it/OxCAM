@@ -42,7 +42,8 @@ std::string designation(const TurningHolderCode& code);
 /// A designation in either form, with or without spaces and dashes, in either case (the
 /// standardized part: a manufacturer's addition after it is ignored). f is the usual one for the
 /// shank (standardF). nullopt when it is not a designation or has an unknown letter. The letters of
-/// a custom value say nothing of the value: they take it from `custom`, and without one are unknown.
+/// a custom value say nothing of the value: they take it from `custom`, and without one are
+/// unknown.
 std::optional<TurningHolderCode> parseDesignation(std::string_view text,
                                                   const TurningHolderCode* custom = nullptr);
 

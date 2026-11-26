@@ -280,7 +280,7 @@ TEST_CASE("swarf turns about convex corners and refuses inside ones", "[strategi
     const auto c = cuts(tp);
     int turning = 0;
     for (const toolpath::Move* m : c) {
-        for (const Vec2 corner : {Vec2(0, 0), Vec2(0, 30), Vec2(-30, 30), Vec2(-30, 0)}) {
+        for (const Vec2& corner : {Vec2(0, 0), Vec2(0, 30), Vec2(-30, 30), Vec2(-30, 0)}) {
             const Vec3 foot(corner.x(), corner.y(), 0.0);
             const double off = (m->end - foot).norm();
             if (off < r + 1e-6) {

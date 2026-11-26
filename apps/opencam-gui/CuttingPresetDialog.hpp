@@ -44,7 +44,7 @@ private:
     void refreshItem();
     tooling::CuttingPreset* current();
     double lengthFactor() const;
-    bool partsOff() const; ///< The tool takes a part-off, so its presets have an end feed.
+    bool partsOff() const;    ///< The tool takes a part-off, so its presets have an end feed.
     bool leadsPerRev() const; ///< The tool turns with lead moves, set per revolution.
 
     tooling::Tool tool_;

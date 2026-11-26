@@ -382,7 +382,9 @@ void MachineLibraryDialog::buildUi() {
     viewRow->addWidget(showAll);
     enclosureBox_ = new QCheckBox(tr("Enclosure"));
     enclosureBox_->setObjectName(QStringLiteral("machinePreviewEnclosure"));
-    enclosureBox_->setToolTip(tr("Show the machine's enclosure (its walls, sheet metal and way covers, as the machine library marks them); off: the rest of the machine without it. It is still checked for collisions."));
+    enclosureBox_->setToolTip(tr("Show the machine's enclosure (its walls, sheet metal and way "
+                                 "covers, as the machine library marks them); off: the rest of the "
+                                 "machine without it. It is still checked for collisions."));
     enclosureBox_->setChecked(
         QSettings().value(QStringLiteral("machineLibraryEnclosure"), true).toBool());
     viewRow->addWidget(enclosureBox_);
@@ -686,8 +688,8 @@ void MachineLibraryDialog::reloadList(const std::string& selectId) {
         }
     }
     for (std::size_t i = 0; i < items_.size(); ++i) {
-        list_->item(static_cast<int>(i))->setHidden(items_[i].builtin &&
-                                                    !showBuiltins_->isChecked());
+        list_->item(static_cast<int>(i))
+            ->setHidden(items_[i].builtin && !showBuiltins_->isChecked());
         if (row < 0 && !list_->item(static_cast<int>(i))->isHidden()) {
             row = static_cast<int>(i);
         }
@@ -1942,7 +1944,7 @@ void MachineLibraryDialog::addPartRow(const machine::ModelPart& p) {
             for (const int r : rows) {
                 if (auto* other = qobject_cast<QComboBox*>(parts_->cellWidget(r, kPartCarrier));
                     other && other != carrier) {
-                    const QSignalBlocker block(other);
+                    const QSignalBlocker blockOther(other);
                     other->setCurrentIndex(std::max(0, other->findData(value)));
                 }
             }
@@ -1971,7 +1973,7 @@ void MachineLibraryDialog::addPartRow(const machine::ModelPart& p) {
             if (inSelection) {
                 for (const int r : rows) {
                     if (QCheckBox* other = checkIn(parts_, r, col); other && other != box) {
-                        const QSignalBlocker block(other);
+                        const QSignalBlocker blockOther(other);
                         other->setChecked(on);
                     }
                 }

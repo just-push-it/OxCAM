@@ -536,8 +536,8 @@ void PropertyPanel::showSelection(const Selection& selection) {
     unit_ = p.displayUnit;
     if (turretOnly_) {
         // The turret window: a lathe setup's turret table, nothing else.
-        const Setup* s = selection.kind == Selection::Kind::Setup ? p.findSetup(selection.id)
-                                                                  : nullptr;
+        const Setup* s =
+            selection.kind == Selection::Kind::Setup ? p.findSetup(selection.id) : nullptr;
         const machine::Machine* m = s ? document::findMachineFor(p, *s) : nullptr;
         QFormLayout* form = newForm(s ? qs(s->name) : tr("Turret setup"));
         if (m && m->lathe) {
@@ -845,10 +845,10 @@ void PropertyPanel::buildSetup(const Setup& setup) {
     }
     machineBox->setCurrentIndex(mi);
     connect(machineBox, &QComboBox::currentIndexChanged, this,
-            [this, edit, machineBox, mi, library, kSourceRole, setupId = setup.id](int i) {
+            [this, edit, machineBox, mi, library, setupId = setup.id](int i) {
                 const auto source =
                     static_cast<Source>(machineBox->itemData(i, kSourceRole).toInt());
-                const std::string id = machineBox->itemData(i).toString().toStdString();
+                const std::string machineId = machineBox->itemData(i).toString().toStdString();
                 if (source == Missing) {
                     return;
                 }
@@ -865,20 +865,20 @@ void PropertyPanel::buildSetup(const Setup& setup) {
                 if (source == InLibrary) {
                     const auto it =
                         std::find_if(library.begin(), library.end(),
-                                     [&](const machine::Machine& m) { return m.id == id; });
+                                     [&](const machine::Machine& m) { return m.id == machineId; });
                     if (it == library.end()) {
                         return;
                     }
                     const machine::Machine chosen = *it;
-                    commit("Use machine " + chosen.name, [&](document::Project& p) {
-                        p.machines.push_back(chosen);
-                        if (Setup* s = p.findSetup(setupId)) {
+                    commit("Use machine " + chosen.name, [&](document::Project& edited) {
+                        edited.machines.push_back(chosen);
+                        if (Setup* s = edited.findSetup(setupId)) {
                             s->machine = chosen.id;
                         }
                     });
                     return;
                 }
-                edit("Change machine", [&](Setup& s) { s.machine = id; });
+                edit("Change machine", [&](Setup& s) { s.machine = machineId; });
             });
     if (!newer) {
         form->addRow(tr("Machine"), machineBox);
@@ -914,8 +914,8 @@ void PropertyPanel::buildSetup(const Setup& setup) {
         form->addRow(QString(), hint);
         connect(update, &QPushButton::clicked, this, [this, chosen = *newer] {
             commit("Update machine " + chosen.name + " from the library",
-                   [&](document::Project& p) {
-                       for (machine::Machine& m : p.machines) {
+                   [&](document::Project& edited) {
+                       for (machine::Machine& m : edited.machines) {
                            if (m.id == chosen.id) {
                                m = chosen;
                            }
@@ -1307,11 +1307,10 @@ void PropertyPanel::buildLatheSupports(QFormLayout* form, const document::Setup&
         }
         for (const document::FittingPackage& pkg : centres) {
             centreBox->addItem(qs(pkg.fitting.name), qs(pkg.fitting.id.toString()));
-            centreBox->setItemData(
-                centreBox->count() - 1,
-                tr("%1\nIn your library: copied into the project when chosen")
-                    .arg(qs(pkg.fitting.name)),
-                Qt::ToolTipRole);
+            centreBox->setItemData(centreBox->count() - 1,
+                                   tr("%1\nIn your library: copied into the project when chosen")
+                                       .arg(qs(pkg.fitting.name)),
+                                   Qt::ToolTipRole);
         }
         if (notFitting > 0 && onMachine && onMachine->lathe && onMachine->lathe->tailstock) {
             centreBox->insertSeparator(centreBox->count());
@@ -1326,13 +1325,13 @@ void PropertyPanel::buildLatheSupports(QFormLayout* form, const document::Setup&
         centreBox->insertSeparator(centreBox->count());
         centreBox->addItem(tr("Manage centres..."), QStringLiteral("manage"));
         connect(centreBox, &QComboBox::activated, this, [this, edit, centreBox, centres](int i) {
-            const QString data = centreBox->itemData(i).toString();
-            if (data == QLatin1String("manage")) {
+            const QString itemText = centreBox->itemData(i).toString();
+            if (itemText == QLatin1String("manage")) {
                 // Once the list is done with its signal: the library rebuilds this page.
                 QTimer::singleShot(0, this, [this] { emit manageFittingsRequested(); });
                 return;
             }
-            const auto chosen = Uuid::parse(ss(data));
+            const auto chosen = Uuid::parse(ss(itemText));
             if (chosen) {
                 const auto it = std::find_if(
                     centres.begin(), centres.end(),
@@ -2975,16 +2974,17 @@ void PropertyPanel::buildTurret(QFormLayout* form, const Setup& setup,
                 [this, station] { selectTurretStation(station); });
         connect(box, &QComboBox::activated, this, [this, edit, box, library, label, chosen](int i) {
             const auto source = static_cast<BlockSource>(box->itemData(i, kSourceRole).toInt());
-            const auto id = Uuid::parse(ss(box->itemData(i).toString()));
+            const auto blockId = Uuid::parse(ss(box->itemData(i).toString()));
             if (source == ManageBlocks) {
                 // Once the list is done with its signal: the library rebuilds this page.
                 QTimer::singleShot(0, this, [this] { emit manageFittingsRequested(); });
                 return;
             }
-            if (source == LibraryBlock && id) {
-                const auto it = std::find_if(
-                    library.begin(), library.end(),
-                    [&](const document::FittingPackage& pkg) { return pkg.fitting.id == *id; });
+            if (source == LibraryBlock && blockId) {
+                const auto it = std::find_if(library.begin(), library.end(),
+                                             [&](const document::FittingPackage& pkg) {
+                                                 return pkg.fitting.id == *blockId;
+                                             });
                 try {
                     doc_->useFitting(*it);
                 } catch (const Error& e) {
@@ -2992,8 +2992,9 @@ void PropertyPanel::buildTurret(QFormLayout* form, const Setup& setup,
                     return;
                 }
             }
-            edit(ss(label),
-                 [&](document::Setup& st) { chosen(st, source != NoBlock ? id : std::nullopt); });
+            edit(ss(label), [&](document::Setup& st) {
+                chosen(st, source != NoBlock ? blockId : std::nullopt);
+            });
         });
         return box;
     };
@@ -3017,18 +3018,17 @@ void PropertyPanel::buildTurret(QFormLayout* form, const Setup& setup,
             here != setup.turretBlocks.end() ? std::optional<Uuid>(here->block) : std::nullopt,
             tr("(no block)"), tr("%1 (does not fit this station)"),
             [takes](int n) {
-                return tr("%n more blocks that the station does not take: it takes %1", nullptr,
-                          n)
+                return tr("%n more blocks that the station does not take: it takes %1", nullptr, n)
                     .arg(takes.join(QStringLiteral(", ")));
             },
             tr("Change a station's block"),
-            [entryAt, number](document::Setup& st, const std::optional<Uuid>& id) {
+            [entryAt, number](document::Setup& st, const std::optional<Uuid>& blockId) {
                 const auto it = entryAt(st, number);
                 if (it != st.turretBlocks.end()) {
                     st.turretBlocks.erase(it);
                 }
-                if (id) {
-                    st.turretBlocks.push_back({number, *id});
+                if (blockId) {
+                    st.turretBlocks.push_back({number, *blockId});
                 }
             });
         box->setObjectName(QStringLiteral("setupStationBlock%1").arg(number));

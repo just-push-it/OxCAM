@@ -304,7 +304,8 @@ TEST_CASE("a circle's centre, and the WCS origin at the bottom centre of the vis
         // turns back (its rotation), so it stays where it is around the part.
         auto partsInProject = [&] {
             std::vector<Transform3> out;
-            for (const PosedPart& part : setupWorkholdingPose(doc, setup())->parts) {
+            const auto held = setupWorkholdingPose(doc, setup());
+            for (const PosedPart& part : held->parts) {
                 out.push_back(setup().wcs.toParent() * part.toWcs);
             }
             return out;

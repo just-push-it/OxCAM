@@ -85,8 +85,7 @@ TEST_CASE("invalid machine documents are rejected", "[machine]") {
     CHECK_THROWS_AS(machineFromJson(noZ), Error);
 }
 
-TEST_CASE("solve accepts valid paths and refuses speeds and feeds beyond the limits",
-          "[machine]") {
+TEST_CASE("solve accepts valid paths and refuses speeds and feeds beyond the limits", "[machine]") {
     const Machine& m = genericMill3();
     const SolveResult ok = solve(m, simplePath(100, 1000, 8000));
     CHECK(ok.ok());

@@ -868,7 +868,7 @@ occ::handle<SelectMgr_EntityOwner> OcctView::edgeOwner(const Uuid& model, int in
     for (const auto& entity : selection->Entities()) {
         const auto owner = occ::down_cast<StdSelect_BRepOwner>(entity->BaseSensitive()->OwnerId());
         if (owner && owner->Shape().TShape() == edges(index).TShape()) {
-            return owner;
+            return occ::handle<SelectMgr_EntityOwner>(owner);
         }
     }
     return {};

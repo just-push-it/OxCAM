@@ -26,7 +26,12 @@ function(ocam_add_library module)
         PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     target_link_libraries(${target} PUBLIC ${arg_PUBLIC_DEPS} PRIVATE ${arg_PRIVATE_DEPS})
     target_compile_features(${target} PUBLIC cxx_std_20)
-    set_target_properties(${target} PROPERTIES OUTPUT_NAME oxcam_${module})
+    # The Python module is a shared library and links these archives. GCC cannot relocate
+    # thread_local symbols (the simulator's scratch buffers) into that module unless the
+    # objects were built position-independent.
+    set_target_properties(${target} PROPERTIES
+        OUTPUT_NAME oxcam_${module}
+        POSITION_INDEPENDENT_CODE ON)
 
     ocam_set_warnings(${target})
     ocam_enable_sanitizers(${target})

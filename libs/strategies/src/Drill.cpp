@@ -40,7 +40,8 @@ toolpath::Toolpath drill(const std::vector<HoleTarget>& holes, const DrillParams
 
     toolpath::CycleType defaultType = toolpath::CycleType::Drill;
     if (type == ToolType::Tap) {
-        defaultType = ctx.tool.mill.leftHand ? toolpath::CycleType::TapLeft : toolpath::CycleType::Tap;
+        defaultType =
+            ctx.tool.mill.leftHand ? toolpath::CycleType::TapLeft : toolpath::CycleType::Tap;
     } else if (type == ToolType::Reamer || type == ToolType::BoringBar) {
         defaultType = toolpath::CycleType::Bore;
     } else if (p.dwell > 0.0) {

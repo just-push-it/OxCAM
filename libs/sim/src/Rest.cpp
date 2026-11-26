@@ -153,7 +153,7 @@ geom2d::Regions materialRegions(const Stock& stock, double zLow, double zHigh, d
     for (int j = 0; j < g.nv(); ++j) {
         for (int i = 0; i < g.nu(); ++i) {
             const IntervalList& ray = g.ray(i, j);
-            if (!ray.empty() && ray.back().hi > zLow &&
+            if (!ray.empty() && static_cast<double>(ray.back().hi) > zLow &&
                 overlapLength(ray, zLow, zHigh) > minLength) {
                 filled[static_cast<std::size_t>(j) * static_cast<std::size_t>(g.nu()) +
                        static_cast<std::size_t>(i)] = 1;
@@ -172,7 +172,7 @@ geom2d::Regions excessRegions(const Stock& stock, const Comparison& comparison, 
     std::vector<std::uint8_t> filled(comparison.excess.size(), 0);
     bool any = false;
     for (std::size_t k = 0; k < filled.size(); ++k) {
-        if (comparison.excess[k] > minExcess) {
+        if (static_cast<double>(comparison.excess[k]) > minExcess) {
             filled[k] = 1;
             any = true;
         }

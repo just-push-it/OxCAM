@@ -219,8 +219,8 @@ struct DropCutter::Impl {
             if (t1 < t0) {
                 continue;
             }
-            auto f = [&](double t) {
-                return a.z() + t * (b.z() - a.z()) - cutter.lo((w + t * e).norm());
+            auto f = [&](double u) {
+                return a.z() + u * (b.z() - a.z()) - cutter.lo((w + u * e).norm());
             };
             best = std::max({best, f(t0), f(t1)});
             constexpr double phi = 0.6180339887498949;

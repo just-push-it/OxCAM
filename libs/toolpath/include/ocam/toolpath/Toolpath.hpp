@@ -225,7 +225,8 @@ struct Toolpath {
     int toolNumber = 0;
     double toolDiameter = 0.0;
     double spindleSpeed = 0.0; ///< rev/s (positive = clockwise, M03).
-    bool spindleReverse = false; ///< Counter-clockwise (M04): a left-hand tap. The speed stays as it is.
+    bool spindleReverse =
+        false; ///< Counter-clockwise (M04): a left-hand tap. The speed stays as it is.
     tooling::Coolant coolant = tooling::Coolant::Flood;
     Compensation compensation = Compensation::None;
     Vec3 start = Vec3::Zero(); ///< Tool position before the first move (at clearance height).
@@ -246,7 +247,7 @@ struct Toolpath {
     /// at the C angle its holes need. Moves are in the WCS, the tool axis on each.
     bool live = false;
     LiveAxes liveAxes = LiveAxes::None;
-    double liveC = 0.0; ///< HeldC, on the part's face: where C is held [rad].
+    double liveC = 0.0;      ///< HeldC, on the part's face: where C is held [rad].
     bool liveAcross = false; ///< HeldC, once solved: the tool is across the part (Y and Z move).
     /// A transfer to the sub-spindle (ADR-0007): no moves, no tool.
     std::optional<SpindleTransfer> transfer;

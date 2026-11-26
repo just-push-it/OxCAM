@@ -22,23 +22,30 @@ jobs:
     env:
       # Tests run in parallel, one per core of the hosted runners.
       CTEST_PARALLEL_LEVEL: 4
+      VCPKG_ROOT: ${{ github.workspace }}/vcpkg
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/vcpkg-cache
+      # vcpkg removed the x-gha provider. The files provider plus actions/cache is the
+      # supported way to reuse OpenCASCADE, Qt, and the other ports between runs.
+      # Paths stay inside the workspace: upload-artifact rejects '..'.
+      VCPKG_BINARY_SOURCES: "clear;files,${{ github.workspace }}/vcpkg-cache,readwrite"
+      SCCACHE_DIR: ${{ github.workspace }}/sccache
+      SCCACHE_CACHE_SIZE: 2G
     strategy:
       fail-fast: false
       matrix:
         include:
-          - { os: windows-2022, preset: ci-msvc-headless, triplet: x64-windows, python: true }
-          - { os: ubuntu-24.04, preset: ci-linux-gcc-headless, triplet: x64-linux, python: true }
-          - { os: ubuntu-24.04, preset: ci-linux-clang-headless, triplet: x64-linux }
-          - { os: ubuntu-24.04, preset: ci-linux-clang-asan, triplet: x64-linux }
-          - { os: macos-14, preset: ci-macos-clang-headless, triplet: arm64-osx }
-          - { os: windows-2022, preset: ci-msvc-gui, triplet: x64-windows }
-          - { os: ubuntu-24.04, preset: ci-linux-gcc-gui, triplet: x64-linux, test-wrapper: xvfb-run -a }
-          - { os: macos-14, preset: ci-macos-clang-gui, triplet: arm64-osx }
-    env:
-      VCPKG_ROOT: ${{ github.workspace }}/../vcpkg
-      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/../vcpkg-cache
+          # deps distinguishes the vcpkg feature set (headless vs Qt). Jobs that install
+          # the same features share one binary cache for that OS and triplet.
+          - { os: windows-2022, preset: ci-msvc-headless, triplet: x64-windows, python: true, deps: headless }
+          - { os: ubuntu-24.04, preset: ci-linux-gcc-headless, triplet: x64-linux, python: true, deps: headless }
+          - { os: ubuntu-24.04, preset: ci-linux-clang-headless, triplet: x64-linux, deps: headless }
+          - { os: ubuntu-24.04, preset: ci-linux-clang-asan, triplet: x64-linux, deps: headless }
+          - { os: macos-15, preset: ci-macos-clang-headless, triplet: arm64-osx, deps: headless }
+          - { os: windows-2022, preset: ci-msvc-gui, triplet: x64-windows, deps: gui }
+          - { os: ubuntu-24.04, preset: ci-linux-gcc-gui, triplet: x64-linux, test-wrapper: xvfb-run -a, deps: gui }
+          - { os: macos-15, preset: ci-macos-clang-gui, triplet: arm64-osx, deps: gui }
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install build tools (Linux)
         if: runner.os == 'Linux'
@@ -54,11 +61,42 @@ jobs:
 
       - name: Install build tools (macOS)
         if: runner.os == 'macOS'
-        run: brew install ninja
+        # libb2 (pulled in by Qt) runs autoreconf and needs libtoolize.
+        run: brew install ninja autoconf autoconf-archive automake libtool
 
+      # VsDevCmd is what ilammy/msvc-dev-cmd ran. That action is still Node 20 and has
+      # no Node 24 release, so the developer environment is imported here instead.
+      # It also exports Visual Studio's own VCPKG_ROOT; the next step puts back the
+      # clone this workflow bootstraps, or git clone targets the VS tree and fails.
       - name: Set up MSVC environment
         if: runner.os == 'Windows'
-        uses: ilammy/msvc-dev-cmd@v1
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          $install = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath | Select-Object -First 1
+          if (-not $install) { throw 'Visual Studio with the VC toolset was not found' }
+          $devcmd = Join-Path $install 'Common7\Tools\VsDevCmd.bat'
+          $lines = & cmd.exe /d /c "`"$devcmd`" -no_logo -arch=x64 -host_arch=x64 >nul 2>&1 && set"
+          if ($LASTEXITCODE -ne 0) { throw "VsDevCmd.bat failed with exit code $LASTEXITCODE" }
+          $delim = 'OXCAM_ENV_EOF'
+          foreach ($line in $lines) {
+            $line = $line -replace "`r$", ''
+            if ($line -notmatch '^([A-Za-z_][A-Za-z0-9_]*)=(.*)$') { continue }
+            $name = $Matches[1]
+            $value = $Matches[2]
+            if ($name -like 'GITHUB_*' -or $value.Contains($delim)) { continue }
+            [System.IO.File]::AppendAllText($env:GITHUB_ENV, "$name<<$delim`n$value`n$delim`n")
+          }
+      - name: Restore vcpkg root after MSVC setup
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          {
+            echo "VCPKG_ROOT<<EOF"
+            echo "${{ github.workspace }}/vcpkg"
+            echo "EOF"
+          } >> "$GITHUB_ENV"
 
       - name: Bootstrap vcpkg
         shell: bash
@@ -72,17 +110,61 @@ jobs:
           fi
 
       - name: Restore vcpkg binary cache
-        uses: actions/cache@v4
+        id: vcpkg-cache
+        uses: actions/cache/restore@v6
         with:
           path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
-          key: vcpkg-${{ matrix.triplet }}-${{ matrix.preset }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}
+          key: vcpkg-${{ runner.os }}-${{ matrix.triplet }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}-${{ matrix.deps }}
           restore-keys: |
-            vcpkg-${{ matrix.triplet }}-${{ matrix.preset }}-
-            vcpkg-${{ matrix.triplet }}-
+            vcpkg-${{ runner.os }}-${{ matrix.triplet }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}-
+            vcpkg-${{ runner.os }}-${{ matrix.triplet }}-
+
+      - name: Record vcpkg cache result
+        run: echo "vcpkg binary cache exact hit=${{ steps.vcpkg-cache.outputs.cache-hit }}"
+
+      - name: Restore sccache
+        id: sccache-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ env.SCCACHE_DIR }}
+          key: sccache-${{ runner.os }}-${{ matrix.preset }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}-${{ github.sha }}
+          restore-keys: |
+            sccache-${{ runner.os }}-${{ matrix.preset }}-
+
+      - name: Install sccache
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=0.20.1
+          case "$RUNNER_OS" in
+            Linux) asset="sccache-v${version}-x86_64-unknown-linux-musl.tar.gz" ;;
+            macOS) asset="sccache-v${version}-aarch64-apple-darwin.tar.gz" ;;
+            Windows) asset="sccache-v${version}-x86_64-pc-windows-msvc.tar.gz" ;;
+          esac
+          url="https://github.com/mozilla/sccache/releases/download/v${version}/${asset}"
+          # Git's tar treats "D:" in a Windows temp path as a remote host.
+          tmp="$RUNNER_TEMP"
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            tmp=$(cygpath -u "$RUNNER_TEMP")
+          fi
+          mkdir -p "$tmp/sccache-extract" "$HOME/.local/bin"
+          curl -fsSL "$url" -o "$tmp/sccache-asset"
+          tar -xf "$tmp/sccache-asset" -C "$tmp/sccache-extract"
+          bin=$(find "$tmp/sccache-extract" -type f \( -name sccache -o -name sccache.exe \) | head -1)
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            cp "$bin" "$HOME/.local/bin/sccache.exe"
+            cygpath -w "$HOME/.local/bin" >> "$GITHUB_PATH"
+            "$HOME/.local/bin/sccache.exe" --version
+          else
+            cp "$bin" "$HOME/.local/bin/sccache"
+            chmod +x "$HOME/.local/bin/sccache"
+            echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+            "$HOME/.local/bin/sccache" --version
+          fi
 
       - name: Set up Python for the bindings
         if: matrix.python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
@@ -91,23 +173,49 @@ jobs:
         run: python -m pip install "nanobind==2.13.0"
 
       - name: Configure
+        id: configure
         shell: bash
         run: |
-          extra=""
+          extra="-DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache"
           if [ "${{ matrix.python }}" = "true" ]; then
-            extra="-DOCAM_BUILD_PYTHON=ON -DPython_EXECUTABLE=$(python -c 'import sys; print(sys.executable)')"
+            extra="$extra -DOCAM_BUILD_PYTHON=ON -DPython_EXECUTABLE=$(python -c 'import sys; print(sys.executable)')"
           fi
           cmake --preset ${{ matrix.preset }} $extra
+
+      # actions/cache only saves on a green job. Configure is the expensive part (OpenCASCADE,
+      # Qt), so keep that cache when the project itself fails to compile.
+      - name: Save vcpkg binary cache
+        if: steps.configure.outcome == 'success' && steps.vcpkg-cache.outputs.cache-hit != 'true' && !cancelled()
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: vcpkg-${{ runner.os }}-${{ matrix.triplet }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}-${{ matrix.deps }}
 
       - name: Build
         run: cmake --build --preset ${{ matrix.preset }}
 
+      - name: Save sccache
+        if: steps.configure.outcome == 'success' && steps.sccache-cache.outputs.cache-hit != 'true' && !cancelled()
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ env.SCCACHE_DIR }}
+          key: sccache-${{ runner.os }}-${{ matrix.preset }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}-${{ github.sha }}
+
+      - name: sccache stats
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: sccache --show-stats
+
       - name: Test
+        env:
+          # OpenCASCADE is not built with ASan. Its process-lifetime tables are reported as
+          # leaks after a test has already passed. Ignored by jobs that are not sanitized.
+          LSAN_OPTIONS: suppressions=${{ github.workspace }}/tests/support/lsan.supp
         run: ${{ matrix.test-wrapper }} ctest --preset ${{ matrix.preset }}
 
       - name: Upload vcpkg logs on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: vcpkg-logs-${{ matrix.preset }}
           path: |
@@ -119,7 +227,7 @@ jobs:
     name: lint (format, REUSE, DCO)
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -130,7 +238,7 @@ jobs:
           clang-format-18 --dry-run --Werror $files
 
       - name: REUSE compliance
-        uses: fsfe/reuse-action@v5
+        uses: fsfe/reuse-action@v6
 
       - name: DCO sign-off
         if: github.event_name == 'pull_request'

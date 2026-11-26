@@ -79,8 +79,12 @@ void StockMeshPrs::Compute(const occ::handle<PrsMgr_PresentationManager>& /*mana
         Graphic3d_ArrayFlags_VertexNormal | Graphic3d_ArrayFlags_VertexColor);
     const Mat3 rot = toProject_.linear();
     for (std::size_t k = 0; k < m.positions.size(); ++k) {
-        const Vec3 p = toProject_ * Vec3(m.positions[k][0], m.positions[k][1], m.positions[k][2]);
-        const Vec3 n = rot * Vec3(m.normals[k][0], m.normals[k][1], m.normals[k][2]);
+        const Vec3 p = toProject_ * Vec3(static_cast<double>(m.positions[k][0]),
+                                         static_cast<double>(m.positions[k][1]),
+                                         static_cast<double>(m.positions[k][2]));
+        const Vec3 n =
+            rot * Vec3(static_cast<double>(m.normals[k][0]), static_cast<double>(m.normals[k][1]),
+                       static_cast<double>(m.normals[k][2]));
         const int v = tris->AddVertex(gp_Pnt(p.x(), p.y(), p.z()), gp_Dir(n.x(), n.y(), n.z()));
         const auto& c = m.colours[k];
         tris->SetVertexColor(
@@ -228,7 +232,7 @@ namespace {
 
 /// A convex outline in the lathe plane (u, v) as a plate from y = low to y = high on the XZ plane.
 occ::handle<Graphic3d_ArrayOfTriangles> lathePlate(const std::vector<Vec2>& pts, double low,
-                                                        double high) {
+                                                   double high) {
     double area = 0.0;
     for (std::size_t k = 0; k < pts.size(); ++k) {
         const Vec2& a = pts[k];
@@ -241,9 +245,8 @@ occ::handle<Graphic3d_ArrayOfTriangles> lathePlate(const std::vector<Vec2>& pts,
     };
     const double turn = area >= 0.0 ? 1.0 : -1.0; // counter-clockwise in (u, v)
     const int n = static_cast<int>(pts.size());
-    occ::handle<Graphic3d_ArrayOfTriangles> tris =
-        new Graphic3d_ArrayOfTriangles(2 * n + 4 * n, 6 * (n - 2) + 6 * n,
-                                       Graphic3d_ArrayFlags_VertexNormal);
+    occ::handle<Graphic3d_ArrayOfTriangles> tris = new Graphic3d_ArrayOfTriangles(
+        2 * n + 4 * n, 6 * (n - 2) + 6 * n, Graphic3d_ArrayFlags_VertexNormal);
     // The two faces (the outline is convex: a fan).
     for (const double y : {high, low}) {
         const gp_Dir normal(0.0, y == high ? 1.0 : -1.0, 0.0);
@@ -381,8 +384,7 @@ void LinesPrs::Compute(const occ::handle<PrsMgr_PresentationManager>& /*manager*
     const Quantity_Color colour(((rgb_ >> 16) & 0xFF) / 255.0, ((rgb_ >> 8) & 0xFF) / 255.0,
                                 (rgb_ & 0xFF) / 255.0, Quantity_TOC_sRGB);
     occ::handle<Graphic3d_Group> group = prs->NewGroup();
-    group->SetGroupPrimitivesAspect(
-        new Graphic3d_AspectLine3d(colour, Aspect_TOL_DASH, static_cast<float>(width_)));
+    group->SetGroupPrimitivesAspect(new Graphic3d_AspectLine3d(colour, Aspect_TOL_DASH, width_));
     group->AddPrimitiveArray(array);
 }
 

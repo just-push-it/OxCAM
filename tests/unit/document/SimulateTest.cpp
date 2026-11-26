@@ -48,7 +48,9 @@ double enclosedVolume(const sim::DisplayMesh& m) {
     double v = 0.0;
     for (std::size_t t = 0; t + 2 < m.indices.size(); t += 3) {
         auto at = [&](std::uint32_t i) {
-            return Vec3(m.positions[i][0], m.positions[i][1], m.positions[i][2]);
+            return Vec3(static_cast<double>(m.positions[i][0]),
+                        static_cast<double>(m.positions[i][1]),
+                        static_cast<double>(m.positions[i][2]));
         };
         v += at(m.indices[t]).dot(at(m.indices[t + 1]).cross(at(m.indices[t + 2])));
     }
@@ -142,10 +144,12 @@ TEST_CASE("simulate the block fixture: face, pocket and contour", "[document][si
 
     // The display mesh of the final stock shows the pocket floor.
     const double floorZ = -kPocketDepth - 1.0; // WCS: origin on the stock top, 1 mm above the part
-    // The display (DL-0040) puts the pocket floor where it was cut, and encloses the stock's volume.
+    // The display (DL-0040) puts the pocket floor where it was cut, and encloses the stock's
+    // volume.
     const sim::DisplayMesh smooth = sim::buildDisplayMesh(sim.finalStock(), &*sim.comparison);
-    CHECK(std::any_of(smooth.positions.begin(), smooth.positions.end(),
-                      [&](const auto& v) { return std::abs(v[2] - floorZ) < 1e-3; }));
+    CHECK(std::any_of(smooth.positions.begin(), smooth.positions.end(), [&](const auto& v) {
+        return std::abs(static_cast<double>(v[2]) - floorZ) < 1e-3;
+    }));
     CHECK(enclosedVolume(smooth) == Approx(sim.finalStock().volume()).epsilon(0.005));
 }
 
@@ -649,10 +653,11 @@ TEST_CASE("tube stock is hollow, in milling and on a lathe", "[document][simulat
         double worst = 0.0;
         std::size_t onBore = 0;
         for (const auto& v : smooth.positions) {
-            if (v[2] < zLo + 1e-3 || v[2] > zHi - 1e-3) {
+            if (static_cast<double>(v[2]) < zLo + 1e-3 || static_cast<double>(v[2]) > zHi - 1e-3) {
                 continue; // on an end face
             }
-            const double r = std::hypot(v[0] - centre.x(), v[1] - centre.y());
+            const double r = std::hypot(static_cast<double>(v[0]) - centre.x(),
+                                        static_cast<double>(v[1]) - centre.y());
             const double d = std::min(std::abs(r - kInner / 2), std::abs(r - kOuter / 2));
             worst = std::max(worst, d);
             onBore += std::abs(r - kInner / 2) < 0.1 ? 1 : 0;
@@ -699,7 +704,8 @@ TEST_CASE("tube stock is hollow, in milling and on a lathe", "[document][simulat
             latheDisplayMesh(sim, 0, *sim.latheInitial, false, sim::kStockColour);
         CHECK(enclosedVolume(turned) == Approx(volume).epsilon(1e-3));
         CHECK(std::any_of(turned.positions.begin(), turned.positions.end(), [](const auto& v) {
-            return std::abs(std::hypot(v[0], v[1]) - 4.0) < 1e-3;
+            return std::abs(std::hypot(static_cast<double>(v[0]), static_cast<double>(v[1])) -
+                            4.0) < 1e-3;
         }));
     }
 }

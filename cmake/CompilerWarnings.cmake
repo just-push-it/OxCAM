@@ -18,7 +18,11 @@ function(ocam_set_warnings target)
                      # Aggregates rely on default member initializers for trailing fields.
                      -Wno-missing-field-initializers)
         if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-            list(APPEND warnings -Wduplicated-cond -Wlogical-op)
+            list(APPEND warnings -Wduplicated-cond -Wlogical-op
+                 # Middle-end warning: it fires inside Eigen (a system header) once the
+                 # outer product is inlined, and -Werror would fail the build on a false
+                 # positive. AxisFit's covariance update is the case CI hit.
+                 -Wno-error=null-dereference)
         endif()
         set(werror -Werror)
     endif()
@@ -29,7 +33,8 @@ function(ocam_set_warnings target)
     endif()
 
     if(MSVC)
-        target_compile_options(${target} PRIVATE /utf-8 /Zc:__cplusplus /Zc:preprocessor)
+        # /Zi with a parallel build (Ninja, sccache) has several cl.exe processes write one PDB.
+        target_compile_options(${target} PRIVATE /utf-8 /Zc:__cplusplus /Zc:preprocessor /FS)
         # _CRT_SECURE_NO_WARNINGS: std::getenv (the diagnostics switches) is standard C++; MSVC's
         # suggestion of _dupenv_s is not portable.
         target_compile_definitions(${target} PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN _USE_MATH_DEFINES

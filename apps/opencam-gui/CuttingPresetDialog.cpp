@@ -294,7 +294,7 @@ CuttingPresetDialog::CuttingPresetDialog(const tooling::Tool& tool, int index, Q
         refreshResults(false);
     };
     connect(name_, &QLineEdit::textEdited, this,
-            [this, edit](const QString& t) { edit([&](auto& p) { p.name = ss(t); }); });
+            [edit](const QString& t) { edit([&](auto& p) { p.name = ss(t); }); });
     connect(material_, &QComboBox::currentTextChanged, this, [this, edit] {
         // A listed group stores its letter; anything typed is kept as it is.
         const int i = material_->currentIndex();
@@ -310,7 +310,7 @@ CuttingPresetDialog::CuttingPresetDialog(const tooling::Tool& tool, int index, Q
     });
     const double d = tool_.mill.diameter;
     const int z = std::max(tool_.mill.flutes, 0);
-    connect(surfaceSpeed_, &QDoubleSpinBox::valueChanged, this, [this, edit, unit](double v) {
+    connect(surfaceSpeed_, &QDoubleSpinBox::valueChanged, this, [edit, unit](double v) {
         edit([&](auto& p) { p.surfaceSpeed = surfaceSpeedToMmPerSecond(v, unit); });
     });
     connect(spindle_, &QDoubleSpinBox::valueChanged, this, [edit, d](double rpm) {

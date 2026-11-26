@@ -18,11 +18,13 @@ jobs:
   fuzz:
     runs-on: ubuntu-24.04
     env:
-      VCPKG_ROOT: ${{ github.workspace }}/../vcpkg
-      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/../vcpkg-cache
+      VCPKG_ROOT: ${{ github.workspace }}/vcpkg
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/vcpkg-cache
+      # Same files cache and key as the CI headless Linux jobs, so a CI run fills this.
+      VCPKG_BINARY_SOURCES: "clear;files,${{ github.workspace }}/vcpkg-cache,readwrite"
       FUZZ_SECONDS: 600
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install build tools
         run: |
@@ -38,13 +40,13 @@ jobs:
           "$VCPKG_ROOT/bootstrap-vcpkg.sh" -disableMetrics
 
       - name: Restore vcpkg binary cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
-          key: vcpkg-x64-linux-linux-clang-fuzz-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}
+          key: vcpkg-Linux-x64-linux-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}-headless
           restore-keys: |
-            vcpkg-x64-linux-linux-clang-fuzz-
-            vcpkg-x64-linux-
+            vcpkg-Linux-x64-linux-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}-
+            vcpkg-Linux-x64-linux-
 
       - name: Configure and build
         run: |
@@ -71,7 +73,7 @@ jobs:
 
       - name: Upload crashing inputs
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: fuzz-crashes
           path: crashes/

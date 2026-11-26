@@ -766,7 +766,8 @@ TEST_CASE("turning's lead feed", "[document][lathe]") {
     SECTION("0 is refused, not replaced") {
         setPreset(0.0);
         for (const std::size_t k : {0u, 1u, 2u}) {
-            CHECK_THROWS_WITH(generate(k), ContainsSubstring("the lead feed of the cutting preset"));
+            CHECK_THROWS_WITH(generate(k),
+                              ContainsSubstring("the lead feed of the cutting preset"));
         }
     }
 }

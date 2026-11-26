@@ -27,8 +27,7 @@ public:
     Check(ToolLibraryDialog& dialog, QString directory)
         : dialog_(dialog), directory_(std::move(directory)) {}
 
-    template <class Widget>
-    Widget* widget(const char* name) {
+    template <class Widget> Widget* widget(const char* name) {
         auto* found = dialog_.findChild<Widget*>(QString::fromLatin1(name));
         if (!found) {
             fail(std::string("no widget ") + name);
@@ -159,7 +158,8 @@ void checkFilter(Check& c, ToolLibraryDialog& dialog) {
     c.choose("toolLocking", QStringLiteral("Cylindrical"));
     c.that(!c.offers("toolHolder", QStringLiteral("PCLNR 2525M 12 (does not fit)")),
            "it fits again");
-    c.that(note && note->text().indexOf(QStringLiteral("keeps its holder")) < 0, "the note is gone");
+    c.that(note && note->text().indexOf(QStringLiteral("keeps its holder")) < 0,
+           "the note is gone");
     c.shot(QStringLiteral("05_fits_again"));
 
     // A grooving tool: plain holders, as before, and no locking style.
@@ -233,7 +233,8 @@ void checkCustom(Check& c, ToolLibraryDialog& dialog) {
     c.that(holder().iso->customLength == 175.0, "and the custom length");
 
     // Files keep them.
-    const tooling::ToolLibrary back = tooling::toolLibraryFromJson(tooling::toJson(dialog.library()));
+    const tooling::ToolLibrary back =
+        tooling::toolLibraryFromJson(tooling::toJson(dialog.library()));
     c.that(back.holders[6].iso == holder().iso, "a file keeps the custom values");
 
     // A value that cannot work is said, not changed.
@@ -285,11 +286,11 @@ int checkHolderEditor(const QString& directory) {
     tooling::Holder milling;
     milling.kind = tooling::HolderKind::Milling;
     milling.name = "Mill holder";
-    milling.profile = geom2d::Polyline::fromPoints(
-        {Vec2(0, 0), Vec2(20, 0), Vec2(20, 50), Vec2(0, 50)}, false);
-    lib.holders = {iso("PCLNR 2525M 12"), iso("SCLNR 2525M 12"), iso("SDJCR 1212F 07"),
-                   iso("PDJNR 2525M 15"), tooling::makeTurningStick({}),
-                   milling,               iso("PCLNR 2020K 12")};
+    milling.profile =
+        geom2d::Polyline::fromPoints({Vec2(0, 0), Vec2(20, 0), Vec2(20, 50), Vec2(0, 50)}, false);
+    lib.holders = {iso("PCLNR 2525M 12"), iso("SCLNR 2525M 12"),         iso("SDJCR 1212F 07"),
+                   iso("PDJNR 2525M 15"), tooling::makeTurningStick({}), milling,
+                   iso("PCLNR 2020K 12")};
     lib.tools = {tooling::makeDefaultTool(tooling::ToolType::TurningInsert, 1),
                  tooling::makeDefaultTool(tooling::ToolType::GroovingInsert, 2),
                  tooling::makeDefaultTool(tooling::ToolType::TurningInsert, 3)};

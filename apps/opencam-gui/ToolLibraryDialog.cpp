@@ -400,7 +400,8 @@ void ToolLibraryDialog::buildUi() {
     holderNote_->setWordWrap(true);
     locking_ = new QComboBox;
     locking_->setObjectName(QStringLiteral("toolLocking"));
-    locking_->addItem(tr("Not set: any clamping"), static_cast<int>(tooling::InsertLocking::NotSet));
+    locking_->addItem(tr("Not set: any clamping"),
+                      static_cast<int>(tooling::InsertLocking::NotSet));
     locking_->addItem(tr("Cylindrical hole: lever or top and hole clamping (P, M)"),
                       static_cast<int>(tooling::InsertLocking::CylindricalHole));
     locking_->addItem(tr("No hole: top clamping (C)"),
@@ -1668,12 +1669,11 @@ void ToolLibraryDialog::commitIsoHolder() {
                     : old.style != c.style           ? tooling::holderStyleAngle(old)
                                                      : std::optional(isoStyleAngle_->value());
     c.customClearance = c.clearance != tooling::kCustomClearance ? std::nullopt
-                        : old.clearance != c.clearance
-                            ? tooling::holderClearanceAngle(old)
-                            : std::optional(isoClearanceAngle_->value());
+                        : old.clearance != c.clearance ? tooling::holderClearanceAngle(old)
+                                                       : std::optional(isoClearanceAngle_->value());
     c.customLength = c.length != tooling::kCustomLength ? std::nullopt
                      : old.length != c.length           ? std::optional(tooling::holderLength(old))
-                                                        : std::optional(isoLengthValue_->value() * f);
+                                              : std::optional(isoLengthValue_->value() * f);
     // A value the user has not set follows the size and the hand.
     if (old.f == tooling::standardF(old)) {
         c.f = tooling::standardF(c);
@@ -1822,9 +1822,9 @@ void ToolLibraryDialog::refreshHolderCombo() {
     QStringList hidden;
     QString own;
     for (const auto& h : lib_.holders) {
-        const auto misses = t ? tooling::holderMismatches(*t, h) : std::vector<tooling::HolderMismatch>{};
-        const bool otherKind =
-            !misses.empty() && misses.front() == tooling::HolderMismatch::Kind;
+        const auto misses =
+            t ? tooling::holderMismatches(*t, h) : std::vector<tooling::HolderMismatch>{};
+        const bool otherKind = !misses.empty() && misses.front() == tooling::HolderMismatch::Kind;
         if (!misses.empty() && t->holderId != h.id) {
             if (!otherKind) {
                 hidden << tr("%1: %2").arg(qs(h.name), holderMismatchText(*t, h));
@@ -1959,9 +1959,9 @@ void ToolLibraryDialog::loadHolderEditor() {
         QString text = tr("%1 long; %n tool(s) use it.", nullptr, static_cast<int>(users))
                            .arg(formatLength(h->stick->length, unit));
         if (h->stick->bar) {
-            text += QLatin1Char(' ') + tr("Bores from Ø%1 at the least.")
-                                           .arg(formatLength(h->stick->f + 0.5 * h->stick->width,
-                                                             unit));
+            text += QLatin1Char(' ') +
+                    tr("Bores from Ø%1 at the least.")
+                        .arg(formatLength(h->stick->f + 0.5 * h->stick->width, unit));
         }
         holderInfo_->setText(text);
         holderInfo_->setStyleSheet(QString());

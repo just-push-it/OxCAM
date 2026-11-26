@@ -702,9 +702,8 @@ PostManifest manifestFromJson(const Json& j, const std::string& name) {
     m.arcPlanes = arcs.value("planes", std::vector<std::string>{"xy", "zx", "yz"});
     m.helicalArcs = arcs.value("helical", true);
     m.tolerance = j.value("tolerance", 0.002);
-    m.cycles = j.value(
-        "cycles",
-        std::vector<std::string>{"drill", "dwell", "peck", "chip_break", "tap", "tap_left", "bore"});
+    m.cycles = j.value("cycles", std::vector<std::string>{"drill", "dwell", "peck", "chip_break",
+                                                          "tap", "tap_left", "bore"});
     m.tcp = j.value("multiAxis", "tcp") == "tcp";
     if (const auto it = j.find("verify"); it != j.end() && it->is_string()) {
         m.verify = it->get<std::string>();

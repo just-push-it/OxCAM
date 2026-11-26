@@ -117,12 +117,14 @@
     { "name": "macos-clang-gui", "displayName": "macOS Clang, with GUI", "inherits": ["macos-clang", "gui"] },
     { "name": "macos-clang-release", "displayName": "macOS Clang, with GUI, optimized (packaging, benchmarks)", "inherits": ["release", "macos-clang", "gui"] },
 
-    { "name": "ci-msvc-headless", "displayName": "CI: MSVC, headless, -Werror", "inherits": ["ci", "msvc-headless"] },
+    { "name": "ci-msvc-headless", "displayName": "CI: MSVC, headless, -Werror", "inherits": ["ci", "msvc-headless"],
+      "cacheVariables": { "CMAKE_MSVC_DEBUG_INFORMATION_FORMAT": "Embedded" } },
     { "name": "ci-linux-gcc-headless", "displayName": "CI: Linux GCC, headless, -Werror", "inherits": ["ci", "linux-gcc-headless"] },
     { "name": "ci-linux-clang-headless", "displayName": "CI: Linux Clang, headless, -Werror", "inherits": ["ci", "linux-clang-headless"] },
     { "name": "ci-linux-clang-asan", "displayName": "CI: Linux Clang, ASan+UBSan, -Werror", "inherits": ["ci", "linux-clang-asan"] },
     { "name": "ci-macos-clang-headless", "displayName": "CI: macOS Clang, headless, -Werror", "inherits": ["ci", "macos-clang-headless"] },
-    { "name": "ci-msvc-gui", "displayName": "CI: MSVC, with GUI, -Werror", "inherits": ["ci", "msvc-gui"] },
+    { "name": "ci-msvc-gui", "displayName": "CI: MSVC, with GUI, -Werror", "inherits": ["ci", "msvc-gui"],
+      "cacheVariables": { "CMAKE_MSVC_DEBUG_INFORMATION_FORMAT": "Embedded" } },
     { "name": "ci-linux-gcc-gui", "displayName": "CI: Linux GCC, with GUI, -Werror", "inherits": ["ci", "linux-gcc-gui"] },
     { "name": "ci-macos-clang-gui", "displayName": "CI: macOS Clang, with GUI, -Werror", "inherits": ["ci", "macos-clang-gui"] }
   ],

@@ -4,7 +4,6 @@
 #include "PostProcessDialog.hpp"
 
 #include "ComboLists.hpp"
-
 #include "PostOptionsForm.hpp"
 #include "ShowBuiltins.hpp"
 

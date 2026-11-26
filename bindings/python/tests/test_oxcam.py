@@ -35,16 +35,16 @@ def main(fixtures, data):
     check(gcode.startswith("%") and "M30" in gcode, "built-in post produces a program")
     check(doc.post(post="fanuc-generic-mill") == gcode, "the mill post by id gives the same")
     check(set(oxcam.builtin_posts()) == {"fanuc-generic-mill", "fanuc-generic-mill-4axis",
-                                         "fanuc-generic-lathe", "haas-classic-mill"},
+                                         "fanuc-generic-lathe", "haas-lathe", "haas-classic-mill"},
           "built-in posts are listed")
     haas = doc.post(post="haas-classic-mill")
     check(haas.startswith("%\nO0") and "M30" in haas, "the Haas-style post by id")
 
     # What a post receives.
     program = doc.nc_program()
-    check(program["format"] == "oxcam-ncprogram" and program["version"] == 2
+    check(program["format"] == "oxcam-ncprogram" and program["version"] == 7
           and program["instructions"] and program["operations"] and program["tools"],
-          "NC program dict, version 2")
+          "NC program dict, version 7")
 
     # A JavaScript post file with an option.
     import tempfile

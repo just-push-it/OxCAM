@@ -95,11 +95,6 @@ void addCommon(std::vector<ParamDef>& params, bool check) {
     }
 }
 
-std::vector<ParamDef> xyz(const char* what) {
-    return {length("x", fmt::format("{} X", what), 0.0, -kFar, kFar, kPick),
-            length("y", fmt::format("{} Y", what), 0.0, -kFar, kFar, kPick)};
-}
-
 } // namespace
 
 bool isProbingStrategy(std::string_view id) noexcept {

@@ -17,7 +17,13 @@ function(ocam_enable_sanitizers target)
     endif()
 
     list(JOIN OCAM_SANITIZERS "," sanitizers)
+    # OpenCASCADE is not built with UBSan. Its NCollection lists are not aligned for the node
+    # type, and -fsanitize=alignment aborts in that header (fixture generation hit
+    # NCollection_TListNode). Leave the other undefined checks on.
     target_compile_options(${target} PRIVATE -fsanitize=${sanitizers} -fno-omit-frame-pointer
                                              -fno-sanitize-recover=all)
+    if("undefined" IN_LIST OCAM_SANITIZERS)
+        target_compile_options(${target} PRIVATE -fno-sanitize=alignment)
+    endif()
     target_link_options(${target} PRIVATE -fsanitize=${sanitizers})
 endfunction()

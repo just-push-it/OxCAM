@@ -332,8 +332,7 @@ int projectSimulate(const SimulateArgs& args) {
         ocam::logWarn("{}", w);
     }
     // A lathe setup is simulated on its profile, without rays.
-    ocam::Vec3 size =
-        sim.initialStock.bounds().size() - ocam::Vec3::Constant(2.0 * sim.resolution);
+    ocam::Vec3 size = sim.initialStock.bounds().size() - ocam::Vec3::Constant(2.0 * sim.resolution);
     double initialVolume = sim.initialStock.volume();
     double finalVolume = sim.finalStock().volume();
     if (sim.latheInitial) {

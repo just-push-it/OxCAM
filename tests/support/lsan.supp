@@ -1,0 +1,4 @@
+# OpenCASCADE is not built with LeakSanitizer. These allocations live for the process
+# and show up after the test assertions have passed.
+leak:TPrsStd_DriverTable::Get
+leak:TCollection_AsciiString::allocate

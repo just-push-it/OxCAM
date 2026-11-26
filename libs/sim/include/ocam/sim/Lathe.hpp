@@ -44,10 +44,10 @@ struct LatheThreadCut {
 
 /// A hole off the spindle axis, or across it, by a tool standing on `axis`.
 struct LatheHoleCut {
-    Vec3 tip = Vec3::Zero();    ///< The deepest the tool's tip got (WCS).
-    Vec3 axis = Vec3::UnitZ();  ///< Unit, from the tip towards the way the tool came in.
-    double length = 0.0;        ///< From the tip back along the axis, as far as it cut.
-    std::vector<Vec2> profile;  ///< (distance from the tip, radius), not getting narrower.
+    Vec3 tip = Vec3::Zero();   ///< The deepest the tool's tip got (WCS).
+    Vec3 axis = Vec3::UnitZ(); ///< Unit, from the tip towards the way the tool came in.
+    double length = 0.0;       ///< From the tip back along the axis, as far as it cut.
+    std::vector<Vec2> profile; ///< (distance from the tip, radius), not getting narrower.
 
     bool operator==(const LatheHoleCut&) const = default;
 };

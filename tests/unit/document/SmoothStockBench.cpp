@@ -114,7 +114,8 @@ MeshStats measure(const std::vector<std::shared_ptr<const sim::DisplayMesh>>& me
             Vec3 v[3];
             for (int k = 0; k < 3; ++k) {
                 const auto& q = m->positions[m->indices[t + static_cast<std::size_t>(k)]];
-                v[k] = Vec3(q[0], q[1], q[2]);
+                v[k] = Vec3(static_cast<double>(q[0]), static_cast<double>(q[1]),
+                            static_cast<double>(q[2]));
             }
             const double area = 0.5 * (v[1] - v[0]).cross(v[2] - v[0]).norm();
             total += area;

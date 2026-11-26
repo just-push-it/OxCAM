@@ -34,7 +34,8 @@ ToolLibrary sampleLibrary() {
 
     int number = 1;
     for (ToolType type : allToolTypes()) {
-        Tool t = makeDefaultTool(type, number++, 6.0 + number);
+        const int toolNumber = number++;
+        Tool t = makeDefaultTool(type, toolNumber, 6.0 + toolNumber);
         t.comment = "made by test";
         t.vendor = "Generic";
         t.partNumber = "P-" + std::to_string(number);

@@ -137,7 +137,8 @@ void ToolProfileView::showTurning(const tooling::Tool& tool, const tooling::Hold
         view.f = holder->stick->f;
         view.fAlongX = holder->stick->bar;
         view.fText = tr("f = %1").arg(formatLength(holder->stick->f, tool.unit));
-        view.caption = holder->stick->bar ? tr("f: tip to bar's axis") : tr("f: tip to back of shank");
+        view.caption =
+            holder->stick->bar ? tr("f: tip to bar's axis") : tr("f: tip to back of shank");
     } else if (iso) {
         const tooling::TurningHolderCode& c = *holder->iso;
         const tooling::TurningHolderOutline outline =
@@ -384,9 +385,9 @@ void ToolProfileView::paintTurning(QPainter& painter, const TurningView& view) {
         // On the dimension line: under it across a shank, to the left of it down to a bar's axis.
         painter.setPen(palette().color(QPalette::Highlight));
         const double wide = painter.fontMetrics().horizontalAdvance(view.fText);
-        painter.drawText(fLabel + (view.fAlongX ? QPointF(-wide - 6.0, 4.0)
-                                                : QPointF(-0.5 * wide, 14.0)),
-                         view.fText);
+        painter.drawText(
+            fLabel + (view.fAlongX ? QPointF(-wide - 6.0, 4.0) : QPointF(-0.5 * wide, 14.0)),
+            view.fText);
     }
 
     // Which way is which on the lathe.

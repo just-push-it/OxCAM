@@ -262,8 +262,8 @@ struct Reader {
             ti.width = len(in, "width");
             ti.threadPitch = len(in, "thread_pitch");
             ti.cuttingEdgeAngle = degToRad(in.value("cutting_edge_angle_deg", 0.0));
-            ti.locking = parseInsertLocking(in.value("locking", "not_set"))
-                             .value_or(InsertLocking::NotSet);
+            ti.locking =
+                parseInsertLocking(in.value("locking", "not_set")).value_or(InsertLocking::NotSet);
         }
         if (const auto it = j.find("solid"); it != j.end()) {
             const Json& s = *it;

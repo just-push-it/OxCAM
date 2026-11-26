@@ -30,7 +30,8 @@ geom3d::Aabb3 box(const Vec3& lo, const Vec3& hi) {
 }
 
 Vec3 at(const DisplayMesh& m, std::uint32_t v) {
-    return Vec3(m.positions[v][0], m.positions[v][1], m.positions[v][2]);
+    return Vec3(static_cast<double>(m.positions[v][0]), static_cast<double>(m.positions[v][1]),
+                static_cast<double>(m.positions[v][2]));
 }
 
 /// Volume enclosed by the triangles (divergence theorem).
@@ -94,7 +95,9 @@ TEST_CASE("smooth surface of a box is the box", "[sim][surface]") {
     CHECK(worst < 1e-4);
     // Flat faces and sharp edges: six normals only.
     for (const auto& n : m.normals) {
-        const double big = std::max({std::abs(n[0]), std::abs(n[1]), std::abs(n[2])});
+        const double big =
+            std::max({std::abs(static_cast<double>(n[0])), std::abs(static_cast<double>(n[1])),
+                      std::abs(static_cast<double>(n[2]))});
         CHECK(big == Approx(1.0).margin(1e-6));
     }
 }

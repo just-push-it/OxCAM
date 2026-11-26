@@ -46,8 +46,8 @@ struct Line {
 class Sampler {
 public:
     Sampler(const TopoDS_Face& face, const Transform3& toFrame)
-        : face_(face), surf_(face, true), classifier_(face, Precision::PConfusion()),
-          toFrame_(toFrame), reversed_(face.Orientation() == TopAbs_REVERSED) {}
+        : surf_(face, true), classifier_(face, Precision::PConfusion()), toFrame_(toFrame),
+          reversed_(face.Orientation() == TopAbs_REVERSED) {}
 
     const BRepAdaptor_Surface& surface() const { return surf_; }
 
@@ -151,7 +151,6 @@ public:
     }
 
 private:
-    const TopoDS_Face& face_;
     BRepAdaptor_Surface surf_;
     BRepTopAdaptor_FClass2d classifier_;
     Transform3 toFrame_;
@@ -198,7 +197,7 @@ FaceRulings faceRulings(const Model& model, int faceIndex, const Transform3& toF
         f.across = Vec2(-f.along.y(), f.along.x());
         f.s0 = f.t0 = std::numeric_limits<double>::infinity();
         f.s1 = f.t1 = -std::numeric_limits<double>::infinity();
-        for (const Vec2 c : {Vec2(u0, v0), Vec2(u1, v0), Vec2(u0, v1), Vec2(u1, v1)}) {
+        for (const Vec2& c : {Vec2(u0, v0), Vec2(u1, v0), Vec2(u0, v1), Vec2(u1, v1)}) {
             f.s0 = std::min(f.s0, c.dot(f.across));
             f.s1 = std::max(f.s1, c.dot(f.across));
             f.t0 = std::min(f.t0, c.dot(f.along));

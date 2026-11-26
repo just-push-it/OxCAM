@@ -300,12 +300,14 @@ struct Cell {
 
     /// True when [z0, z1] comes within `margin` of the missing material.
     bool gougedAt(double z0, double z1, double margin) const noexcept {
-        return gougeLo <= gougeHi && z1 >= gougeLo - margin && z0 <= gougeHi + margin;
+        return gougeLo <= gougeHi && z1 >= static_cast<double>(gougeLo) - margin &&
+               z0 <= static_cast<double>(gougeHi) + margin;
     }
     /// True when the surface at `z` is at size: the cell's rays mostly are, or the stock left is
     /// more than `margin` away.
     bool atSizeAt(double z, double margin) const noexcept {
-        return compared && (keepsColour || z < excessLo - margin || z > excessHi + margin);
+        return compared && (keepsColour || z < static_cast<double>(excessLo) - margin ||
+                            z > static_cast<double>(excessHi) + margin);
     }
 };
 
@@ -410,13 +412,11 @@ void computeCell(const DexelGrid& g, const RayColours& rc, CellGrid& cg, int ci,
             if (rc.excess) {
                 if (rc.excess[idx] > 0.0f) {
                     ++excessCount;
-                    excessSum += rc.excess[idx];
-                    excessLo = std::min(excessLo, rc.excessLo
-                                                      ? rc.excessLo[idx]
-                                                      : -std::numeric_limits<float>::max());
-                    excessHi = std::max(excessHi, rc.excessHi
-                                                      ? rc.excessHi[idx]
-                                                      : std::numeric_limits<float>::max());
+                    excessSum += static_cast<double>(rc.excess[idx]);
+                    excessLo = std::min(excessLo, rc.excessLo ? rc.excessLo[idx]
+                                                              : -std::numeric_limits<float>::max());
+                    excessHi = std::max(excessHi, rc.excessHi ? rc.excessHi[idx]
+                                                              : std::numeric_limits<float>::max());
                 }
             }
         }
@@ -467,8 +467,8 @@ struct RayDeviation {
     float gouge = 0.0f;   ///< Part material missing beyond the tolerance (0 below 1e-4).
     float gougeLo = 0.0f; ///< Where along the ray it is missing.
     float gougeHi = 0.0f;
-    float excess = 0.0f; ///< Stock outside the part (0 when within the tolerance).
-    float beyond = 0.0f; ///< Stock beyond the tolerance (for the excess volume).
+    float excess = 0.0f;   ///< Stock outside the part (0 when within the tolerance).
+    float beyond = 0.0f;   ///< Stock beyond the tolerance (for the excess volume).
     float excessLo = 0.0f; ///< Where along the ray it is.
     float excessHi = 0.0f;
 };
@@ -864,12 +864,12 @@ std::optional<Comparison> StockDisplay::comparison() const {
     for (std::size_t idx = 0; idx < s.excess.size(); ++idx) {
         if (s.gouge[idx] > 0.0f) {
             ++c.gougeRays;
-            c.gougeVolume += s.gouge[idx] * area;
+            c.gougeVolume += static_cast<double>(s.gouge[idx]) * area;
             c.maxGouge = std::max(c.maxGouge, static_cast<double>(s.gouge[idx]));
         }
         if (s.excess[idx] > 0.0f) {
             ++c.excessRays;
-            c.excessVolume += s.beyond[idx] * area;
+            c.excessVolume += static_cast<double>(s.beyond[idx]) * area;
             c.maxExcess = std::max(c.maxExcess, static_cast<double>(s.excess[idx]));
         }
     }

@@ -707,10 +707,12 @@ TopoDS_Shape wrappedPart() {
                              zCylinder(0, 0, kDiameter, 0, kLength - kNeckLength));
     // An annular sector centred on +X.
     const double half = kSlotAngle / 2.0;
-    const gp_Ax2 axes(gp_Pnt(0, 0, kSlotZ0), gp_Dir(0, 0, 1), gp_Dir(std::cos(half), -std::sin(half), 0));
+    const gp_Ax2 axes(gp_Pnt(0, 0, kSlotZ0), gp_Dir(0, 0, 1),
+                      gp_Dir(std::cos(half), -std::sin(half), 0));
     const TopoDS_Shape sector =
         BRepPrimAPI_MakeCylinder(axes, R + 1.0, kSlotZ1 - kSlotZ0, kSlotAngle).Shape();
-    return cut(part, cut(sector, zCylinder(0, 0, kDiameter - 2.0 * kSlotDepth, kSlotZ0 - 1.0, kSlotZ1 + 1.0)));
+    return cut(part, cut(sector, zCylinder(0, 0, kDiameter - 2.0 * kSlotDepth, kSlotZ0 - 1.0,
+                                           kSlotZ1 + 1.0)));
 }
 
 TopoDS_Shape spoolPart() {
@@ -1006,11 +1008,11 @@ int main(int argc, char** argv) {
             w.members.push_back({"Moving jaw", Vec3::UnitY(), -5.0, 20.0, {}, 1.0});
             w.parts[2].member = "Moving jaw";
             auto pickFace = [&](std::size_t partIndex, const char* name, auto&& wanted) {
-                const cad::Model model = cad::Model::importStepData(
+                const cad::Model part = cad::Model::importStepData(
                     package.files.at(w.parts[partIndex].sha256), name, cancel, progress);
-                for (int f = 1; f <= cad::subShapeCount(model, cad::SubShapeType::Face); ++f) {
+                for (int f = 1; f <= cad::subShapeCount(part, cad::SubShapeType::Face); ++f) {
                     const document::WorkholdingDatum d = document::pickedDatum(
-                        name, w.parts[partIndex], model, cad::SubShapeType::Face, f);
+                        name, w.parts[partIndex], part, cad::SubShapeType::Face, f);
                     if (d.shape == document::DatumShape::Plane && wanted(d.direction)) {
                         w.datums.push_back(d);
                         return;
@@ -1246,12 +1248,12 @@ int main(int argc, char** argv) {
         bossThread.modify("Add the operations", [&](document::Project& p) {
             using namespace boss_plate;
             p.name = "boss thread";
-            const cad::Model& model = *bossThread.model(bossModel);
+            const cad::Model& bossCad = *bossThread.model(bossModel);
             document::ShapeRef plateTop;
-            for (const auto& f : cad::findPlanarFaces(model)) {
+            for (const auto& f : cad::findPlanarFaces(bossCad)) {
                 if (std::abs(f.height - kThickness) < 1e-6) {
                     plateTop = {bossModel, cad::SubShapeType::Face, f.face,
-                                cad::signatureOf(model, cad::SubShapeType::Face, f.face)};
+                                cad::signatureOf(bossCad, cad::SubShapeType::Face, f.face)};
                 }
             }
             const tooling::Tool mill = withPreset(tooling::makeFlatEndMill(1, 8.0, 25.0, 70.0));
@@ -1275,7 +1277,9 @@ int main(int argc, char** argv) {
             op("Clear around the boss", "pocket2d", mill, {plateTop}, Json::object(),
                stepDown(5.0));
             op("M20 thread", "threadmill", thread, {},
-               Json{{"side", "external"}, {"major_diameter", kBossDiameter}, {"thread_depth", 12.0}});
+               Json{{"side", "external"},
+                    {"major_diameter", kBossDiameter},
+                    {"thread_depth", 12.0}});
             p.tools.tools = {mill, thread};
         });
         bossThread.save(out / "boss_thread_project.ocam");
@@ -1289,16 +1293,16 @@ int main(int argc, char** argv) {
         auto finishing = [&](const char* step, const char* name, const char* file,
                              const std::function<void(document::Project&, const Uuid&)>& add) {
             document::Document d;
-            const Uuid model = d.importModel(out / step, cancel, progress);
-            const Uuid setup = d.addSetup(model);
+            const Uuid imported = d.importModel(out / step, cancel, progress);
+            const Uuid setupId = d.addSetup(imported);
             d.modify("Add 3D operations", [&](document::Project& p) {
                 p.name = name;
-                add(p, setup);
+                add(p, setupId);
             });
             d.save(out / file);
             std::printf("wrote %s\n", (out / file).string().c_str());
         };
-        const auto addOp = [](document::Project& p, const Uuid& setup, const char* name,
+        const auto addOp = [](document::Project& p, const Uuid& setupId, const char* name,
                               const char* type, const tooling::Tool& tool, Json params,
                               document::PresetOverrides overrides = {}) {
             document::Operation o;
@@ -1308,16 +1312,16 @@ int main(int argc, char** argv) {
             o.presetId = tool.presets.front().id;
             o.parameters = std::move(params);
             o.presetOverrides = overrides;
-            p.findSetup(setup)->operations.push_back(o);
+            p.findSetup(setupId)->operations.push_back(o);
         };
         finishing(
             "dome.step", "dome steep and shallow", "dome_steep_shallow_project.ocam",
-            [&](document::Project& p, const Uuid& setup) {
+            [&](document::Project& p, const Uuid& setupId) {
                 const tooling::Tool rougher =
                     withPreset(tooling::makeFlatEndMill(1, 12.0, 40.0, 90.0));
                 const tooling::Tool ball = withPreset(tooling::makeBallEndMill(2, 6.0, 40.0, 90.0));
-                addOp(p, setup, "Rough", "zlevel_rough", rougher, Json::object(), stepDown(3.0));
-                addOp(p, setup, "Finish", "steep_shallow3d", ball,
+                addOp(p, setupId, "Rough", "zlevel_rough", rougher, Json::object(), stepDown(3.0));
+                addOp(p, setupId, "Finish", "steep_shallow3d", ball,
                       Json{{"threshold_angle", 40.0},
                            {"overlap", 1.0},
                            {"steep_scallop", 0.02},
@@ -1326,16 +1330,16 @@ int main(int argc, char** argv) {
             });
         finishing(
             "fillet_pocket.step", "fillet pocket", "fillet_pocket_project.ocam",
-            [&](document::Project& p, const Uuid& setup) {
+            [&](document::Project& p, const Uuid& setupId) {
                 const tooling::Tool rougher =
                     withPreset(tooling::makeFlatEndMill(1, 8.0, 40.0, 90.0));
                 const tooling::Tool big = withPreset(tooling::makeBallEndMill(2, 10.0, 40.0, 90.0));
                 const tooling::Tool small =
                     withPreset(tooling::makeBallEndMill(3, 4.0, 30.0, 90.0));
-                addOp(p, setup, "Rough", "zlevel_rough", rougher, Json::object(), stepDown(3.0));
-                addOp(p, setup, "Finish", "steep_shallow3d", big,
+                addOp(p, setupId, "Rough", "zlevel_rough", rougher, Json::object(), stepDown(3.0));
+                addOp(p, setupId, "Finish", "steep_shallow3d", big,
                       Json{{"steep_scallop", 0.02}, {"shallow_scallop", 0.02}});
-                addOp(p, setup, "Pencil", "pencil3d", small,
+                addOp(p, setupId, "Pencil", "pencil3d", small,
                       Json{{"reference_diameter", 10.0},
                            {"offset_passes", 8},
                            {"scallop_height", 0.01}});
@@ -1509,13 +1513,15 @@ int main(int argc, char** argv) {
             turn.name = "CNMG 120404";
             turn.insert.noseRadius = 0.4;
             const auto makeMill = [](int number, double diameter) {
-                tooling::Tool t = withPreset(tooling::makeFlatEndMill(number, diameter, 20.0, 60.0));
+                tooling::Tool t =
+                    withPreset(tooling::makeFlatEndMill(number, diameter, 20.0, 60.0));
                 t.presets.front().surfaceSpeed = 1000.0; // 60 m/min: within the live tool's limit
                 return t;
             };
             const tooling::Tool mill = makeMill(2, 6.0);
             const tooling::Tool boringMill = makeMill(7, 9.0);
-            tooling::Tool threadMill = tooling::makeDefaultTool(tooling::ToolType::ThreadMill, 3, 6.0);
+            tooling::Tool threadMill =
+                tooling::makeDefaultTool(tooling::ToolType::ThreadMill, 3, 6.0);
             threadMill.mill.threadPitch = kThreadPitch;
             threadMill.mill.shankDiameter = 4.0; // it has to fit the hole off the hole's centre
             threadMill.mill.fluteLength = 20.0;
@@ -1523,8 +1529,8 @@ int main(int argc, char** argv) {
             threadMill.presets = {tooling::defaultPreset(threadMill)};
             threadMill.presets.front().surfaceSpeed = 1000.0; // 60 m/min, as the mills
             const auto makeDrill = [](int number, double diameter) {
-                tooling::Tool drill = tooling::makeDefaultTool(tooling::ToolType::Drill, number,
-                                                               diameter);
+                tooling::Tool drill =
+                    tooling::makeDefaultTool(tooling::ToolType::Drill, number, diameter);
                 drill.mill.shankDiameter = diameter;
                 drill.mill.fluteLength = 40.0;
                 drill.mill.overallLength = 80.0;
@@ -1553,8 +1559,9 @@ int main(int argc, char** argv) {
                 s.operations.push_back(o);
             };
             // The flat: from outside along the WCS's +X, its top the flat (WCS z 0 is the front).
-            const document::ToolOrientation flat{
-                document::Frame{Vec3(kFlatX, 0.0, -kLength / 2.0), Vec3::UnitY(), Vec3::UnitX()}, 0};
+            const document::ToolOrientation flatPose{
+                document::Frame{Vec3(kFlatX, 0.0, -kLength / 2.0), Vec3::UnitY(), Vec3::UnitX()},
+                0};
             const Json liveHole{{"drive", "live"}};
             const Json liveDrill{{"drive", "live"}, {"depth_mode", "tip"}};
             op("Face", "turn_face", turn, Json::object());
@@ -1566,7 +1573,7 @@ int main(int argc, char** argv) {
                Json{{"major_diameter", kThreadMajor}, {"depth", kThreadDepth - 1.0}});
             op("Tap drill", "drill", tapDrill, liveDrill);
             op("Tap", "tap", tap, liveHole);
-            op("Flat", "facing", mill, Json{{"live_axes", "y"}}, {}, flat);
+            op("Flat", "facing", mill, Json{{"live_axes", "y"}}, {}, flatPose);
             op("Finish", "turn_finish", turn, Json::object());
             p.tools.tools = {turn, mill, boringMill, threadMill, threadDrill, tapDrill, tap};
         });
@@ -1599,7 +1606,8 @@ int main(int argc, char** argv) {
             turn = withPreset(turn);
             tooling::Tool mill = withPreset(tooling::makeFlatEndMill(2, 6.0, 20.0, 60.0));
             mill.presets.front().surfaceSpeed = 1000.0; // 60 m/min: within the live tool's limit
-            auto op = [&](const char* name, const char* type, const tooling::Tool& tool, Json params) {
+            auto op = [&](const char* name, const char* type, const tooling::Tool& tool,
+                          Json params) {
                 document::Operation o;
                 o.name = name;
                 o.type = type;
@@ -2120,14 +2128,14 @@ int main(int argc, char** argv) {
             };
             op("Rough", "zlevel_rough", rougher, Json::object(), stepDown(3.0));
             // One-way passes: with a lead, reversing the feed would swing the table round.
-            document::PresetOverrides finishing;
-            finishing.radialDepth = 1.0; // the stepover
+            document::PresetOverrides finishPasses;
+            finishPasses.radialDepth = 1.0; // the stepover
             op("5-axis finish", "multiaxis_finish", ball,
                Json{{"pattern", "one_way"},
                     {"axis_mode", "lead_tilt"},
                     {"lead_angle", 10.0},
                     {"max_tilt", 45.0}},
-               finishing);
+               finishPasses);
             op("Walls", "waterline3d", ball, Json::object(), stepDown(1.0));
             p.tools.tools = {rougher, ball};
         });
@@ -2212,8 +2220,7 @@ int main(int argc, char** argv) {
                    stepDown(3.0));
                 document::Operation& tilted =
                     op("Tilted rest rough", "zlevel_rough", side, {},
-                       Json{{"rest_machining", true}, {"fine_step_down", 0.0}},
-                       stepDown(2.0));
+                       Json{{"rest_machining", true}, {"fine_step_down", 0.0}}, stepDown(2.0));
                 const double a = 20.0 * std::numbers::pi / 180.0;
                 tilted.orientation =
                     document::ToolOrientation{document::Frame{Vec3::Zero(), Vec3::UnitX(),
