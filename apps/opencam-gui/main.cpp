@@ -2436,10 +2436,10 @@ int main(int argc, char** argv) {
                 if (parser.isSet(simPaths) && !pathsSet) {
                     pathsSet = true;
                     const QStringList parts = parser.value(simPaths).split(QLatin1Char(':'));
-                    auto* combo =
-                        window.simulationPanel()->findChild<QComboBox*>(QStringLiteral("simulationPaths"));
-                    const int index = combo ? combo->findText(parts.value(0), Qt::MatchFixedString)
-                                            : -1;
+                    auto* combo = window.simulationPanel()->findChild<QComboBox*>(
+                        QStringLiteral("simulationPaths"));
+                    const int index =
+                        combo ? combo->findText(parts.value(0), Qt::MatchFixedString) : -1;
                     if (index < 0) {
                         std::fprintf(stderr, "unknown --sim-paths choice\n");
                         poll->stop();
@@ -2448,10 +2448,9 @@ int main(int argc, char** argv) {
                     }
                     combo->setCurrentIndex(index);
                     if (parts.size() > 1) {
-                        window.simulationPanel()
-                            ->findChild<QDoubleSpinBox*>(QStringLiteral("simulationTrailLength"))
-                            ->setValue(parts.value(1).toDouble());
+                        window.simulationPanel()->setTrailLengthMm(parts.value(1).toDouble());
                     }
+                    return; // The next poll waits for the frame this asked for.
                 }
                 if (parser.isSet(simPosition) && !positioned) {
                     positioned = true;

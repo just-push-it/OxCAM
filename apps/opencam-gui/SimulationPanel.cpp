@@ -480,8 +480,8 @@ SimulationPanel::SimulationPanel(OcctView* view, SnapshotFn snapshot, ToolpathsF
     pathsCombo_->addItem(tr("Trail"), static_cast<int>(PathsShown::Trail));
     pathsCombo_->setToolTip(tr("Toolpaths shown over the simulated stock: none, all of them, or "
                                "only the trail: the path the tool has just come along"));
-    const int savedPaths = pathsCombo_->findData(
-        QSettings().value(QStringLiteral("simulationPaths"), 0).toInt());
+    const int savedPaths =
+        pathsCombo_->findData(QSettings().value(QStringLiteral("simulationPaths"), 0).toInt());
     pathsCombo_->setCurrentIndex(std::max(0, savedPaths));
     trailLength_ = new QDoubleSpinBox(this);
     trailLength_->setObjectName(QStringLiteral("simulationTrailLength"));
@@ -490,15 +490,15 @@ SimulationPanel::SimulationPanel(OcctView* view, SnapshotFn snapshot, ToolpathsF
     trailLength_->setToolTip(tr("How much of the path behind the tool the trail shows, measured "
                                 "along the path (rapids included). At 0 it shows all of the "
                                 "operation's path cut so far."));
-    trailLengthMm_ = std::max(
-        0.0, QSettings().value(QStringLiteral("simulationTrailLength"), 50.0).toDouble());
+    trailLengthMm_ =
+        std::max(0.0, QSettings().value(QStringLiteral("simulationTrailLength"), 50.0).toDouble());
     pathsRow->addWidget(pathsCombo_);
     pathsRow->addWidget(new QLabel(tr("Trail"), this));
     pathsRow->addWidget(trailLength_, 1);
     layout->addLayout(pathsRow);
     connect(pathsCombo_, &QComboBox::currentIndexChanged, this, [this] {
         QSettings().setValue(QStringLiteral("simulationPaths"), pathsCombo_->currentData());
-        rebuildControls();
+        trailLength_->setEnabled(sim_ && !simRunning_ && pathsShown() == PathsShown::Trail);
         requestFrame(lastFrame_);
     });
     connect(trailLength_, &QDoubleSpinBox::valueChanged, this, [this](double v) {
@@ -1466,13 +1466,11 @@ std::shared_ptr<const toolpath::Toolpath> SimulationPanel::trailAt(const Positio
     double firstFraction = 0.0;
     if (trailLengthMm_ > 0.0 && here > trailLengthMm_) {
         const double from = here - trailLengthMm_;
-        const auto it = std::upper_bound(lengths.begin(),
-                                         lengths.begin() + static_cast<std::ptrdiff_t>(end) + 1,
-                                         from);
+        const auto it = std::upper_bound(
+            lengths.begin(), lengths.begin() + static_cast<std::ptrdiff_t>(end) + 1, from);
         first = static_cast<std::size_t>(it - lengths.begin()) - 1;
         const double length = lengths[first + 1] - lengths[first];
-        firstFraction =
-            length > 0.0 ? std::clamp((from - lengths[first]) / length, 0.0, 1.0) : 0.0;
+        firstFraction = length > 0.0 ? std::clamp((from - lengths[first]) / length, 0.0, 1.0) : 0.0;
     }
     auto trail = std::make_shared<toolpath::Toolpath>();
     trail->cycles = path.cycles; // the moves that are cycles index them
@@ -2095,6 +2093,10 @@ void SimulationPanel::updateStatus() {
         text += tr("\nThe project changed: simulate again to update.");
     }
     status_->setText(text);
+}
+
+void SimulationPanel::setTrailLengthMm(double mm) {
+    trailLength_->setValue(mm / (unit_ == LengthUnit::Inch ? 25.4 : 1.0));
 }
 
 void SimulationPanel::setDisplayUnit(LengthUnit unit) {

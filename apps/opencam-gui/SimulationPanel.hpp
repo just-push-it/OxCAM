@@ -92,6 +92,8 @@ public:
 
     /// Unit of the lengths and volumes shown.
     void setDisplayUnit(LengthUnit unit);
+    /// The trail's length in millimetres (0: all of the operation), shown in the display unit.
+    void setTrailLengthMm(double mm);
     /// The colour of uncut material; the stock shown now is drawn again in it.
     void setStockColour(const QColor& colour);
     /// The simulation dock was shown or hidden: the simulation leaves the 3D view (kept) or comes
