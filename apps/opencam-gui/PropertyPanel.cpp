@@ -3621,19 +3621,19 @@ void PropertyPanel::buildOperation(const document::Operation& op, const Setup& s
     QFormLayout* cutting =
         toolless ? addTab(QStringLiteral("cutting"), tr("Transfer"),
                           tr("Where the sub-spindle takes the part"))
-                 : addTab(QStringLiteral("cutting"), tr("Cutting data"),
+                 : addTab(QStringLiteral("cutting"), tr("Cutting"),
                           tr("The tool, its cutting preset, and the speeds and feeds this "
                              "operation cuts at"));
     QFormLayout* geometry = addTab(QStringLiteral("geometry"), tr("Geometry"),
                                    tr("The faces and edges the operation cuts"));
     QFormLayout* orientation =
-        addTab(QStringLiteral("orientation"), tr("Tool orientation"),
+        addTab(QStringLiteral("orientation"), tr("Orientation"),
                tr("The tool axis, its origin and work offset, and the rotary positions"));
     QFormLayout* heights = addTab(QStringLiteral("heights"), tr("Heights"),
                                   tr("Clearance, retract and feed heights, top and bottom"));
-    QFormLayout* parameters = addTab(QStringLiteral("parameters"), tr("Parameters"),
-                                     tr("The strategy's own parameters, and the post's options "
-                                        "for the operation"));
+    QFormLayout* settings = addTab(QStringLiteral("settings"), tr("Settings"),
+                                   tr("The strategy's own parameters, and the post's options "
+                                      "for the operation"));
 
     // The project's tools, then the tools of the user's libraries (default first); picking a
     // library tool copies it, with its holder, into the project.
@@ -3798,10 +3798,10 @@ void PropertyPanel::buildOperation(const document::Operation& op, const Setup& s
                 },
                 selectedTool);
             editor->setObjectName(QStringLiteral("param_") + QString::fromStdString(key));
-            parameters->addRow(trStrategy(def.label), editor);
+            settings->addRow(trStrategy(def.label), editor);
         }
     }
-    buildPostOptions(parameters, op, setup);
+    buildPostOptions(settings, op, setup);
 
     // The toolpath's state under the tabs, whichever is shown.
     form = finishTabs();

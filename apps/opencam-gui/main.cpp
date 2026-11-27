@@ -1073,7 +1073,7 @@ int main(int argc, char** argv) {
     const QCommandLineOption panelTab(
         QStringLiteral("panel-tab"),
         QStringLiteral("With --select-operation, show the operation page's tab <key> (cutting, "
-                       "geometry, orientation, heights or parameters)."),
+                       "geometry, orientation, heights or settings)."),
         QStringLiteral("key"));
     parser.addOption(panelTab);
     const QCommandLineOption toolpathData(
