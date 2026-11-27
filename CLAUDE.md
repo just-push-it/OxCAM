@@ -16,6 +16,14 @@ and fix every failure before `git push` or opening a pull request. Never push to
 If a tool is missing locally, say so and get it (or run the checks on the Debian VM) rather
 than skip the check.
 
+## Reply on review comments you address
+
+When you fix a review comment on a pull request (CodeRabbit or a person), reply on that
+comment's thread once the fix is pushed, so it is easy to see what has been addressed:
+"Fixed in `<commit>`: <what changed>". If you skip a comment, reply there with the reason.
+Reply in the thread (`gh api repos/<owner>/<repo>/pulls/<pr>/comments/<id>/replies -f body=...`),
+not as a new PR comment.
+
 ## The output is exactly what the user sees (ADR-0004)
 
 OxCAM's output drives machine tools. **Every speed and feed in a toolpath or G-code program
