@@ -239,6 +239,8 @@ static const char* const kLibraryStrings[] = {
     QT_TRANSLATE_NOOP("Strategies", "Closed areas (pockets, slots) are cleared on the largest circles that fit along their medial axis. Areas with air to start from (the outside of a part): traced passes from the air inward, or the same circles, started by a helix"),
     QT_TRANSLATE_NOOP("Strategies", "Traced passes"),
     QT_TRANSLATE_NOOP("Strategies", "Circles too"),
+    QT_TRANSLATE_NOOP("Strategies", "Linking move lift height"),
+    QT_TRANSLATE_NOOP("Strategies", "Where the circles leave the material and the tool cuts straight across to the next one, it rises this far above the level for the crossing and comes back down where it meets material again, so it does not drag on the floor; 0 = across at depth"),
     QT_TRANSLATE_NOOP("Strategies", "Fine step down"),
     QT_TRANSLATE_NOOP("Strategies", "Extra levels this far apart between the step-down levels, cutting only next to sloped and rounded walls (fillets, chamfers, drafts), so the stairs left on them are at most about this tall; 0 = none"),
     QT_TRANSLATE_NOOP("Strategies", "Order"),
