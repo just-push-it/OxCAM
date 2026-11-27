@@ -4432,6 +4432,7 @@ int main(int argc, char** argv) {
                                 name = tabs->widget(t)->objectName() + QLatin1Char('_');
                             }
                             int lastField = -1;
+                            int lastTabField = -1;
                             // Every width, or every 4th on each tab of a page with tabs.
                             const int step = tabs ? 4 : 1;
                             for (int w = 220; w <= 640; w += step) {
@@ -4442,6 +4443,19 @@ int main(int argc, char** argv) {
                                 // The first line edit (the name): the field column's width.
                                 const auto edits = area->widget()->findChildren<QLineEdit*>();
                                 const int field = edits.isEmpty() ? -1 : edits.front()->width();
+                                // The shown tab's first value field: its own field column.
+                                int tabField = -1;
+                                if (tabs) {
+                                    for (QWidget* f :
+                                         tabs->currentWidget()->findChildren<QWidget*>()) {
+                                        if (f->isVisible() && (qobject_cast<QAbstractSpinBox*>(f) ||
+                                                               qobject_cast<QComboBox*>(f) ||
+                                                               qobject_cast<QLineEdit*>(f))) {
+                                            tabField = f->width();
+                                            break;
+                                        }
+                                    }
+                                }
                                 QString problem;
                                 // A label whose text needs more lines than its row shows.
                                 for (QLabel* l : area->widget()->findChildren<QLabel*>()) {
@@ -4478,7 +4492,14 @@ int main(int argc, char** argv) {
                                                   .arg(lastField)
                                                   .arg(field);
                                 }
+                                if (problem.isEmpty() && lastTabField >= 0 && tabField >= 0 &&
+                                    tabField < lastTabField - 4) {
+                                    problem = QStringLiteral("tab fields squeezed from %1 to %2")
+                                                  .arg(lastTabField)
+                                                  .arg(tabField);
+                                }
                                 lastField = field;
+                                lastTabField = tabField;
                                 if (w == 260 || w == 360 || w == 480) { // to look at
                                     dock->grab().save(dir.filePath(
                                         QStringLiteral("at_%1%2.png").arg(name).arg(w)));
