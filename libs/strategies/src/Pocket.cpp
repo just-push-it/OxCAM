@@ -1060,6 +1060,7 @@ toolpath::Toolpath zLevelRough(const geom3d::Mesh& part, const Regions& stockOut
         in.rampAngle = zp.rampAngle;
         in.helixRadius = zp.helixRadius;
         in.medialOpenAreas = zp.medialOpenAreas;
+        in.linkLift = zp.linkLift;
         if (std::getenv("OCAM_CLEARING_DEBUG") != nullptr) {
             std::fprintf(
                 stderr, "DBG item z %.3f top %.3f material %.1f piece %.1f air %.1f cleared %.1f\n",

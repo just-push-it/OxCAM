@@ -635,6 +635,7 @@ ZLevelRoughParams zLevelParams(const char* strategy, const Json& values, const t
     const ParamReader r(*findStrategy(strategy), values);
     ZLevelRoughParams p;
     p.medialOpenAreas = r.choice("open_areas") == "medial";
+    p.linkLift = r.number("link_lift");
     p.fineStepDown = r.number("fine_step_down");
     p.stepDown = presetStepDown(preset);
     p.stepoverRatio = presetStepoverRatio(preset, tool);

@@ -133,6 +133,18 @@ MATHSM's construction, with the project's exact material and engagement grid aro
    The simulation finds no collision and the same gouge as before (from other operations);
    1.6 mm³ less is removed.
 
+   **Lifted.** The maintainer asked for the line to lift so the tool does not drag on the
+   floor. 3D roughing's *Linking move lift height* (`link_lift`, 0.1 mm by default; 0 = at
+   depth) raises it. The line rises at 45 degrees to that height above the level, crosses, and
+   comes down the same way to where it meets material. On a line shorter than twice the lift,
+   it rises and falls more steeply. The tool stays over the line's own ground: the line is clear
+   at depth, and clear of the material above the level (`overhead`), so the column over it is
+   clear too. The moves are links at the cutting feed, as before. Only these lines are lifted.
+   The links at depth from one circle to the next (DL-0018) still run on the floor. On the
+   titanium test part (DL-0018), 50 lines are lifted: 3231 moves become 3331, the estimate goes
+   from 600.9 s to 601.1 s, the removed volume is unchanged, and the simulation finds no
+   collision. `ClearingTest` "the lines across the circles' backs rise by the link lift".
+
 ## Sources
 
 - G. Elber, E. Cohen, S. Drake, *MATHSM: medial axis transform toward high speed machining of

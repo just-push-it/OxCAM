@@ -503,6 +503,11 @@ std::vector<StrategyInfo> buildStrategies() {
                  "Closed areas (pockets, slots) are cleared on the largest circles that fit along "
                  "their medial axis. Areas with air to start from (the outside of a part): "
                  "traced passes from the air inward, or the same circles, started by a helix"),
+          length("link_lift", "Linking move lift height", 0.1, 0.0, 10.0,
+                 "Where the circles leave the material and the tool cuts straight across to the "
+                 "next one, it rises this far above the level for the crossing and comes back "
+                 "down where it meets material again, so it does not drag on the floor; 0 = "
+                 "across at depth"),
           length("fine_step_down", "Fine step down", 1.25, 0.0, 1000.0,
                  "Extra levels this far apart between the step-down levels, cutting only next "
                  "to sloped and rounded walls (fillets, chamfers, drafts), so the stairs left "

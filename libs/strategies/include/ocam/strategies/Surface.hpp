@@ -185,6 +185,9 @@ struct ZLevelRoughParams {
     /// Areas with air to start from (the outside of a part) on circles too, instead of traced
     /// passes from the air inward (DL-0031).
     bool medialOpenAreas = false;
+    /// Where the circles cross their backs straight (out of the material), the crossing rises
+    /// this far above the level and comes back down where it meets material again; 0: at depth.
+    double linkLift = 0.0;
     /// Fine levels this far apart (0: none) between the step-down levels, each taking only the
     /// band next to sloped and rounded walls that the level under it cannot reach, so the stairs
     /// left there are at most about this tall. (The operation's parameter defaults to 1.25 mm.)

@@ -665,6 +665,46 @@ TEST_CASE("Z-level roughing keeps the engagement within the limit",
         CHECK(rp.idle < plain.idle + 10.0);
         CHECK(rp.largest <= engagementAngle(0.8 * 6.35 + 0.3, 3.175) + 0.15);
     }
+    SECTION("the lines across the circles' backs rise by the link lift") {
+        const auto plate = heightMesh(
+            [](double x, double y) {
+                return std::abs(x) <= 20.0 && std::abs(y) <= 6.35 ? -2.0 : 10.0;
+            },
+            -26, 26, -14, 14, 260, -1);
+        Harness hs(tooling::makeFlatEndMill(1, 6.35, 25.0, 60.0));
+        ZLevelRoughParams ps = p;
+        ps.stepoverRatio = 0.8;
+        const geom2d::Regions stock = box(-26, -14, 26, 14);
+        const auto atDepthLinks = [](const toolpath::Toolpath& tp, double z) {
+            return std::count_if(tp.moves.begin(), tp.moves.end(), [&](const toolpath::Move& m) {
+                return m.feedClass == FeedClass::Link && std::abs(m.end.z() - z) < 1e-6;
+            });
+        };
+        const auto flat = zLevelRough(plate, stock, 10.0, 0.0, ps, hs.context());
+        CHECK(atDepthLinks(flat, 5.1) == 0);
+        ps.linkLift = 0.1;
+        const auto tp = zLevelRough(plate, stock, 10.0, 0.0, ps, hs.context());
+        INFO("warnings: " << (tp.warnings.empty() ? "" : tp.warnings.front()));
+        CHECK(tp.warnings.empty());
+        // Each crossing at z = 5 goes up to 5.1, and every move up there comes back down to 5:
+        // nothing else changes height.
+        CHECK(atDepthLinks(tp, 5.1) > 5);
+        for (std::size_t i = 0; i + 1 < tp.moves.size(); ++i) {
+            const toolpath::Move& m = tp.moves[i];
+            if (std::abs(m.end.z() - 5.1) < 1e-6 && m.feedClass == FeedClass::Link) {
+                const toolpath::Move& next = tp.moves[i + 1];
+                CHECK(next.feedClass == FeedClass::Link);
+                CHECK((std::abs(next.end.z() - 5.0) < 1e-6 || std::abs(next.end.z() - 5.1) < 1e-6));
+            }
+        }
+        // The cutting is the same: only the crossings are lifted.
+        const geom2d::Regions material = box(-19.65, -6.0, 19.65, 6.0);
+        const Replay rp = replay(tp, 5.0, 5.0, material, {Vec2(-20, -6.35), Vec2(20, 6.35)}, 3.175);
+        INFO("largest at " << rp.at.transpose() << " on move " << rp.move << ", left "
+                           << rp.leftover << " mm2");
+        CHECK(rp.largest <= engagementAngle(0.8 * 6.35 + 0.3, 3.175) + 0.15);
+        CHECK(rp.leftover < 14.0);
+    }
     SECTION("an L-shaped boss in square stock is traced (open area), or circled when asked") {
         const auto boss = heightMesh(
             [](double x, double y) {
