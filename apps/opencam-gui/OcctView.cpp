@@ -320,6 +320,9 @@ void OcctView::setModels(const std::vector<ViewModel>& models) {
                 context_->Display(ais, AIS_Shaded, -1, false);
             }
             context_->SetLocation(ais, TopLoc_Location(toTrsf(viewFromProject_ * m.placement)));
+            if (!m.fixture && modelsGhosted_) {
+                ghostModel(ais);
+            }
             if (m.fixture ? fixturesHidden_ : modelsHidden_) {
                 context_->Erase(ais, false);
             }
@@ -486,8 +489,10 @@ void OcctView::setSimulation(const std::optional<SimulationScene>& scene) {
         removeStock();
         remove(simToolPrs_);
         remove(simMarkersPrs_);
+        remove(simTrailPrs_);
         simTool_.reset();
         simInsert_.reset();
+        simTrail_.reset();
         simCollisions_.clear();
         if (simActive_ && stock_) {
             context_->Display(stock_, false);
@@ -555,6 +560,18 @@ void OcctView::setSimulation(const std::optional<SimulationScene>& scene) {
                 context_->SetLocation(simMarkersPrs_, TopLoc_Location(toTrsf(viewFromProject_)));
             }
         }
+        if (scene->trail != simTrail_ || moved) {
+            remove(simTrailPrs_);
+            simTrail_ = scene->trail;
+            if (simTrail_ && !simTrail_->moves.empty()) {
+                simTrailPrs_ = new ToolpathPrs(*simTrail_, scene->wcsToProject, true, colors_);
+                // Over the stock: the trail runs along the surface the tool has just cut.
+                simTrailPrs_->SetZLayer(Graphic3d_ZLayerId_Topmost);
+                context_->Display(simTrailPrs_, 0, -1, false);
+                context_->Deactivate(simTrailPrs_);
+                context_->SetLocation(simTrailPrs_, TopLoc_Location(toTrsf(viewFromProject_)));
+            }
+        }
         simXf_ = scene->wcsToProject;
     }
     const bool hidePaths = scene && !scene->showToolpaths;
@@ -613,6 +630,7 @@ void OcctView::setViewFromProject(const Transform3& xf) {
     }
     place(simToolPrs_, xf * simToolAt_);
     place(simMarkersPrs_, xf);
+    place(simTrailPrs_, xf);
     place(wcs_, xf);
 }
 
@@ -773,8 +791,20 @@ void OcctView::setMachine(const std::optional<MachineScene>& scene) {
 }
 
 void OcctView::applyModelVisibility() {
+    // The scene's Part box decides whether the part shows. Over an opaque stock the part would be
+    // hidden inside it, so it is drawn see-through on top of the stock instead.
+    const bool hideModels = simActive_ && !sceneShowsModels_;
+    const bool ghost = simActive_ && sceneShowsModels_ && stockTransparency_ <= 0.0;
+    const bool ghostChanged = ghost != modelsGhosted_;
+    modelsGhosted_ = ghost;
     applyModelColor(); // see-through stock or not
-    const bool hideModels = simActive_ && !sceneShowsModels_ && stockTransparency_ <= 0.0;
+    if (ghostChanged && context_) {
+        for (auto& [id, shown] : shown_) {
+            if (!shown.fixture) {
+                ghostModel(shown.ais);
+            }
+        }
+    }
     const bool hideFixtures = simActive_ && !sceneShowsFixtures_;
     if (hideModels == modelsHidden_ && hideFixtures == fixturesHidden_) {
         return;
@@ -793,6 +823,19 @@ void OcctView::applyModelVisibility() {
                 context_->Display(shown.ais, AIS_Shaded, -1, false);
             }
         }
+    }
+}
+
+void OcctView::ghostModel(const occ::handle<AIS_InteractiveObject>& ais) {
+    if (modelsGhosted_) {
+        ais->SetTransparency(kGhostTransparency);
+        ais->SetZLayer(Graphic3d_ZLayerId_Topmost);
+    } else {
+        ais->UnsetTransparency();
+        ais->SetZLayer(Graphic3d_ZLayerId_Default);
+    }
+    if (context_->IsDisplayed(ais)) {
+        context_->Redisplay(ais, false);
     }
 }
 
@@ -1038,8 +1081,9 @@ void OcctView::applyModelColor() {
     }
     // Called for every simulation frame: recolour (and so recompute) the models only when their
     // colour changes.
-    const QColor wanted =
-        simActive_ && stockTransparency_ > 0.0 ? colors_.partThroughStock : colors_.part;
+    const QColor wanted = simActive_ && (stockTransparency_ > 0.0 || modelsGhosted_)
+                              ? colors_.partThroughStock
+                              : colors_.part;
     if (wanted == modelColor_) {
         return;
     }

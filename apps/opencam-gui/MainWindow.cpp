@@ -820,6 +820,9 @@ void MainWindow::setDocument(std::unique_ptr<document::Document> doc) {
     jobs_.clear();
     toolpaths_.clear();
     simPanel_->closeSimulation();
+    // Another document leaves simulation mode: the simulation shown was of the one before.
+    simDock_->hide();
+    setSimulationMode(false);
     doc_ = std::move(doc);
     listener_ = doc_->addListener([this] {
         simPanel_->markStale();

@@ -63,6 +63,8 @@ public:
     void simulateCurrentSetup();
     bool simulationBusy() const noexcept;
     SimulationPanel* simulationPanel() const noexcept { return simPanel_; }
+    /// True in simulation mode: the program locked while the simulation dock shows (test hook).
+    bool simulationMode() const noexcept { return simulationMode_; }
     /// Selects the first setup in the project tree (test hook).
     void selectFirstSetup();
     void selectLastSetup();

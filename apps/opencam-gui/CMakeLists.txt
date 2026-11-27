@@ -195,6 +195,17 @@ if(OCAM_BUILD_TESTS)
         COMMAND oxcam-gui --smoke-test ${OCAM_FIXTURE_DIR}/shaft_project.ocam
                 --screenshot-sim ${PROJECT_BINARY_DIR}/shaft_project_smooth_mid_rough.png
                 --sim-position 1:20)
+    # The toolpath trail over the stock part-way through the pocket.
+    add_test(NAME gui.simulation_trail
+        COMMAND oxcam-gui --smoke-test ${OCAM_FIXTURE_DIR}/sample_project.ocam
+                --screenshot-sim ${PROJECT_BINARY_DIR}/sample_project_sim_trail.png
+                --sim-position 1:90 --sim-paths trail:40)
+    # A new project while simulating leaves simulation mode.
+    add_test(NAME gui.simulation_new_project
+        COMMAND oxcam-gui --smoke-test ${OCAM_FIXTURE_DIR}/sample_project.ocam
+                --screenshot-sim ${PROJECT_BINARY_DIR}/unused_sim.png --sim-new-project-test)
+    set_tests_properties(gui.simulation_trail gui.simulation_new_project
+        PROPERTIES LABELS gui TIMEOUT 300)
     # A preference for the cell display, which has gone, loads without complaint.
     file(WRITE ${PROJECT_BINARY_DIR}/test-settings-cells/OxCAM/OxCAM.ini
          "[simulation]\nstockDisplay=cells\n")

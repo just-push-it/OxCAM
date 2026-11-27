@@ -3,6 +3,19 @@
 Read [CONTRIBUTING.md](CONTRIBUTING.md) for the clean-room, design-log and code rules. The rule
 below overrides convenience everywhere in this repository.
 
+## Lint locally before you push or open a PR
+
+Run the same checks as the CI `lint` job ([.github/workflows/ci.yml](.github/workflows/ci.yml))
+and fix every failure before `git push` or opening a pull request. Never push to find out.
+
+- **clang-format 18** (the CI version; other versions format differently):
+  `clang-format-18 --dry-run --Werror $(git ls-files '*.cpp' '*.hpp' '*.h')`
+- **REUSE**: `reuse lint`
+- **DCO**: every commit carries a `Signed-off-by:` line (`git commit -s`).
+
+If a tool is missing locally, say so and get it (or run the checks on the Debian VM) rather
+than skip the check.
+
 ## The output is exactly what the user sees (ADR-0004)
 
 OxCAM's output drives machine tools. **Every speed and feed in a toolpath or G-code program

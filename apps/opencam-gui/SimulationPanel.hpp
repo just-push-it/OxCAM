@@ -92,6 +92,8 @@ public:
 
     /// Unit of the lengths and volumes shown.
     void setDisplayUnit(LengthUnit unit);
+    /// The trail's length in millimetres (0: all of the operation), shown in the display unit.
+    void setTrailLengthMm(double mm);
     /// The colour of uncut material; the stock shown now is drawn again in it.
     void setStockColour(const QColor& colour);
     /// The simulation dock was shown or hidden: the simulation leaves the 3D view (kept) or comes
@@ -295,7 +297,19 @@ private:
     QCheckBox* showTool_ = nullptr;
     QCheckBox* showPart_ = nullptr;
     QCheckBox* showFixtures_ = nullptr;
-    QCheckBox* showPaths_ = nullptr;
+    /// Which toolpaths show over the simulated stock: none, all of them, or the trail.
+    enum class PathsShown { None = 0, All = 1, Trail = 2 };
+    QComboBox* pathsCombo_ = nullptr;
+    PathsShown pathsShown() const;
+    /// Trail: how much of the path behind the tool shows [mm along the path]; 0 = all of the
+    /// current operation's path done so far.
+    QDoubleSpinBox* trailLength_ = nullptr;
+    double trailLengthMm_ = 50.0;
+    /// The path the tool has come along in the current operation up to `at`, the last
+    /// trailLengthMm_ of it (nullptr when there is none).
+    std::shared_ptr<const toolpath::Toolpath> trailAt(const Position& at) const;
+    /// Per operation: the path length at the start of each move (moves + 1 entries) [mm].
+    std::vector<std::vector<double>> startLengths_;
     QCheckBox* compare_ = nullptr;
     QCheckBox* showMachine_ = nullptr;
     QCheckBox* machineFixed_ = nullptr;
