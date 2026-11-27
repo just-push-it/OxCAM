@@ -81,6 +81,43 @@ WorkholdingDatum pickedDatum(std::string name, const WorkholdingPart& part, cons
                              cad::SubShapeType type, int index,
                              const std::optional<Vec3>& onFace = std::nullopt);
 
+// -- Up: which axis of the parts' (STEP model's) coordinates points out of the fixture ----------
+
+/// One of the six model axes (+X, -X, +Y, -Y, +Z, -Z) by number, and the number of the axis
+/// `direction` lies along (within 1e-6 rad), or -1.
+Vec3 modelAxis(int index);
+int modelAxisIndex(const Vec3& direction);
+/// "+Y" for the model's +Y; the components ("0.707, 0, 0.707") for another direction.
+std::string modelDirectionText(const Vec3& direction);
+
+/// The up direction a picked datum gives (DL-0035): a flat face its outward normal, a round face,
+/// circular edge or straight edge along its axis or line (reversed with `flip`), a point on a face
+/// the normal there. Nullopt for a vertex (no direction).
+std::optional<Vec3> upFromDatum(const WorkholdingDatum& datum, bool flip = false);
+
+/// A picked up direction against the model axes: the nearest axis, the angle to it, and whether
+/// it is close enough (within `snapDegrees`) to be taken as that axis.
+struct UpSnap {
+    int axis = 4;         ///< The nearest model axis (modelAxis).
+    double degrees = 0.0; ///< Between the direction and that axis.
+    bool snapped = false; ///< degrees <= snapDegrees: use the axis.
+};
+inline constexpr double kUpSnapDegrees = 3.0;
+UpSnap snapUp(const Vec3& direction, double snapDegrees = kUpSnapDegrees);
+
+/// Where the template's up disagrees with a stock holding's seat (the jaw tops, a dovetail's or a
+/// plate's seat, a chuck's jaw front), whose direction is out of the fixture: the first holding
+/// whose seat is more than `toleranceDegrees` from up. Nullopt when they agree, or there is no
+/// seat with a direction to compare.
+struct UpMismatch {
+    std::string holding;
+    std::string seat;
+    Vec3 seatDirection = Vec3::UnitZ(); ///< Unit length.
+    double degrees = 0.0;
+};
+std::optional<UpMismatch> upMismatch(const WorkholdingTemplate& workholding,
+                                     double toleranceDegrees = 1.0);
+
 /// The archive bytes of a template file. Throws Error(InvalidArgument) when a part's file is
 /// missing.
 std::string writeWorkholdingArchive(const WorkholdingPackage& package);

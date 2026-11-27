@@ -100,7 +100,16 @@ std::string comboText(const QTableWidget* t, int row, int col) {
 /// The six directions along the template's axes.
 const Vec3 kDirections[] = {Vec3::UnitX(),  -Vec3::UnitX(), Vec3::UnitY(),
                             -Vec3::UnitY(), Vec3::UnitZ(),  -Vec3::UnitZ()};
-const char* kDirectionNames[] = {"+X", "-X", "+Y", "-Y", "+Z", "-Z"};
+
+/// "Model +Y", or the exact direction's components: a direction in the parts' (STEP model's)
+/// own coordinates, not the machine's.
+QString modelDirection(const Vec3& d) {
+    return QCoreApplication::translate("WorkholdingLibraryDialog", "Model %1")
+        .arg(qs(document::modelDirectionText(d)));
+}
+
+constexpr std::uint32_t kUpColour = 0x40D070;      // up, agreeing with the jaw tops
+constexpr std::uint32_t kUpWrongColour = 0xFF8C1A; // up, not the jaw tops' direction
 
 enum MemberColumn { kMemberName, kDirX, kDirY, kDirZ, kMin, kMax, kLinked, kRatio };
 enum HoldingColumn {
@@ -246,11 +255,40 @@ void WorkholdingLibraryDialog::buildUi() {
     auto* identityForm = new QFormLayout(identity);
     name_ = new QLineEdit;
     description_ = new QLineEdit;
+    // Up is an axis of the parts' own (STEP) coordinates, not the machine's Z: a vise drawn
+    // Y-up has its jaw tops facing the model's +Y.
+    const QString upTip =
+        tr("Which axis of the STEP model points up, out of the fixture (toward the spindle). Not "
+           "the machine's Z: a vise drawn Y-up in its CAD system has Model +Y here. The arrow "
+           "in the preview shows it, beside the model's own X, Y and Z.");
     up_ = new QComboBox;
     for (int i = 0; i < 6; ++i) {
-        up_->addItem(QString::fromLatin1(kDirectionNames[i]), i);
+        up_->addItem(modelDirection(kDirections[i]), i);
     }
-    up_->setToolTip(tr("Up, out of the fixture, in the parts' coordinates"));
+    up_->setObjectName(QStringLiteral("workholdingUp"));
+    up_->setToolTip(upTip);
+    pickUp_ = new QPushButton(tr("Pick..."));
+    pickUp_->setCheckable(true);
+    pickUp_->setToolTip(tr("Click a face in the preview whose outward normal points up (the jaw "
+                           "tops), or a straight edge or round face along the up direction"));
+    flipUp_ = new QPushButton(tr("Flip"));
+    flipUp_->setToolTip(tr("Reverse up (an edge or axis picked may point down)"));
+    auto* upRow = new QWidget;
+    auto* upLayout = new QHBoxLayout(upRow);
+    upLayout->setContentsMargins(0, 0, 0, 0);
+    upLayout->addWidget(up_, 1);
+    upLayout->addWidget(pickUp_);
+    upLayout->addWidget(flipUp_);
+    upWarningRow_ = new QWidget;
+    auto* upWarningLayout = new QHBoxLayout(upWarningRow_);
+    upWarningLayout->setContentsMargins(0, 0, 0, 0);
+    upWarning_ = new QLabel;
+    upWarning_->setWordWrap(true);
+    upWarning_->setStyleSheet(QStringLiteral("color: #e07a10"));
+    useSeatUp_ = new QPushButton(tr("Use the jaw tops' direction"));
+    upWarningLayout->addWidget(upWarning_, 1);
+    upWarningLayout->addWidget(useSeatUp_, 0, Qt::AlignTop);
+    upWarningRow_->hide();
     mount_ = new QComboBox;
     mount_->setToolTip(tr("The datum the workholding sits on the machine by (a setup can snap "
                           "it onto the machine): its base's bottom, a zero-point pin"));
@@ -282,6 +320,10 @@ void WorkholdingLibraryDialog::buildUi() {
                           "their motion and where the stock sits are set up for you"));
     identityForm->addRow(QString(), wizard);
     connect(wizard, &QPushButton::clicked, this, &WorkholdingLibraryDialog::setUpWithWizard);
+    auto* upLabel = new QLabel(tr("Model axis pointing up"));
+    upLabel->setToolTip(upTip);
+    identityForm->addRow(upLabel, upRow);
+    identityForm->addRow(QString(), upWarningRow_);
     editorLayout->addWidget(identity);
 
     // Everything the wizard sets up, by hand.
@@ -295,9 +337,8 @@ void WorkholdingLibraryDialog::buildUi() {
     advanced_ = new QWidget;
     auto* advancedLayout = new QVBoxLayout(advanced_);
     advancedLayout->setContentsMargins(0, 0, 0, 0);
-    auto* frameBox = new QGroupBox(tr("Orientation and mount"));
+    auto* frameBox = new QGroupBox(tr("Mount"));
     auto* frameForm = new QFormLayout(frameBox);
-    frameForm->addRow(tr("Up"), up_);
     frameForm->addRow(tr("Mount datum"), mount_);
     advancedLayout->addWidget(frameBox);
 
@@ -498,7 +539,14 @@ void WorkholdingLibraryDialog::buildUi() {
     for (QLineEdit* e : {name_, description_}) {
         connect(e, &QLineEdit::textEdited, this, &WorkholdingLibraryDialog::markDirty);
     }
-    connect(up_, &QComboBox::currentIndexChanged, this, &WorkholdingLibraryDialog::markDirty);
+    connect(up_, &QComboBox::currentIndexChanged, this, [this] {
+        markDirty();
+        updatePreview();
+    });
+    connect(pickUp_, &QPushButton::clicked, this,
+            [this](bool on) { startPick(on ? Pick::Up : Pick::None); });
+    connect(flipUp_, &QPushButton::clicked, this, [this] { setUp(-shownUp()); });
+    connect(useSeatUp_, &QPushButton::clicked, this, [this] { useSeatUp(); });
     connect(mount_, &QComboBox::currentIndexChanged, this, &WorkholdingLibraryDialog::markDirty);
 
     // Preview.
@@ -831,13 +879,13 @@ void WorkholdingLibraryDialog::loadEditor(const Item& item) {
     const document::WorkholdingTemplate& w = item.package.workholding;
     name_->setText(qs(w.name));
     description_->setText(qs(w.description));
-    int up = 4;
-    for (int i = 0; i < 6; ++i) {
-        if (w.up.normalized().isApprox(kDirections[i], 1e-9)) {
-            up = i;
-        }
+    // As stored: an up off the model's axes is kept, not turned into one of them.
+    if (up_->count() > 6) {
+        const QSignalBlocker block(up_);
+        up_->removeItem(6);
     }
-    up_->setCurrentIndex(up);
+    exactUp_.reset();
+    showUp(w.up.norm() > 1e-12 ? w.up : Vec3(Vec3::UnitZ()));
     files_ = item.package.files;
     models_.clear();
     {
@@ -899,7 +947,7 @@ document::WorkholdingPackage WorkholdingLibraryDialog::editedPackage() const {
     w.datums = datums_;
     w.holdings = editedHoldings();
     w.mount = mount_->currentData().toString().toStdString();
-    w.up = kDirections[std::clamp(up_->currentIndex(), 0, 5)];
+    w.up = shownUp();
     editedJaws(w);
     for (const auto& p : w.parts) {
         if (const auto it = files_.find(p.sha256); it != files_.end()) {
@@ -933,6 +981,7 @@ void WorkholdingLibraryDialog::updateIssues() {
         issues << qs(issue);
     }
     issues_->setText(issues.join(QLatin1Char('\n')));
+    refreshUpWarning(pkg.workholding);
     save_->setEnabled(dirty_ && issues.isEmpty());
     save_->setText(dirty_ ? tr("Save to library *") : tr("Save to library"));
     use_->setEnabled(issues.isEmpty());
@@ -1855,7 +1904,16 @@ void WorkholdingLibraryDialog::addHoldingRow(const StockHolding& h) {
             combo->addItem(qs(d.name), qs(d.name));
         }
         combo->setCurrentIndex(std::max(0, combo->findData(qs(value))));
-        connect(combo, &QComboBox::currentIndexChanged, this, &WorkholdingLibraryDialog::markDirty);
+        if (column == kSeat) {
+            // The up arrow starts at the seat and is coloured by whether up agrees with it.
+            connect(combo, &QComboBox::currentIndexChanged, this, [this] {
+                markDirty();
+                updatePreview();
+            });
+        } else {
+            connect(combo, &QComboBox::currentIndexChanged, this,
+                    &WorkholdingLibraryDialog::markDirty);
+        }
         holdings_->setCellWidget(r, column, combo);
     }
     holdings_->setItem(r, kGrip, numberItem(h.gripDepth));
@@ -1913,12 +1971,18 @@ void WorkholdingLibraryDialog::startPick(Pick mode) {
     {
         const QSignalBlocker b1(pickDatum_);
         const QSignalBlocker b2(pickPoint_);
+        const QSignalBlocker b3(pickUp_);
         pickDatum_->setChecked(mode == Pick::Datum);
         pickPoint_->setChecked(mode == Pick::PointOnFace);
+        pickUp_->setChecked(mode == Pick::Up);
     }
-    pickNote_->setText(mode == Pick::Datum         ? tr("Click a face, edge or vertex of a part.")
-                       : mode == Pick::PointOnFace ? tr("Click a point on a face of a part.")
-                                                   : QString());
+    pickNote_->setText(
+        mode == Pick::Datum         ? tr("Click a face, edge or vertex of a part.")
+        : mode == Pick::PointOnFace ? tr("Click a point on a face of a part.")
+        : mode == Pick::Up
+            ? tr("Click the face that points up (the jaw tops: up is its outward normal), or a "
+                 "straight edge or round face along the up direction.")
+            : QString());
 }
 
 void WorkholdingLibraryDialog::previewPicked() {
@@ -1940,6 +2004,10 @@ void WorkholdingLibraryDialog::previewPicked() {
     }
     const cad::Model* model = modelOf(it->sha256);
     if (!model) {
+        return;
+    }
+    if (pick_ == Pick::Up) {
+        pickNote_->setText(applyUpPick(*it, *model, s.type, s.index, true));
         return;
     }
     try {
@@ -1990,6 +2058,134 @@ std::string WorkholdingLibraryDialog::pickDatum(const std::string& partName, cad
     const std::string name = d.name;
     addDatum(d);
     return name;
+}
+
+// -- Up ---------------------------------------------------------------------------------------
+
+void WorkholdingLibraryDialog::showUp(const Vec3& direction) {
+    const QSignalBlocker block(up_);
+    const int axis = document::modelAxisIndex(direction);
+    if (axis >= 0) {
+        up_->setCurrentIndex(axis);
+        return;
+    }
+    // Off the model's axes (picked on a tilted face, or as stored): its own entry, kept exactly.
+    exactUp_ = direction.normalized();
+    const QString text = tr("%1 (exact)").arg(modelDirection(*exactUp_));
+    if (up_->count() < 7) {
+        up_->addItem(text, 6);
+    } else {
+        up_->setItemText(6, text);
+    }
+    up_->setCurrentIndex(6);
+}
+
+void WorkholdingLibraryDialog::setUp(const Vec3& direction) {
+    if (direction.norm() < 1e-12) {
+        return;
+    }
+    showUp(direction);
+    markDirty();
+    updatePreview();
+}
+
+Vec3 WorkholdingLibraryDialog::shownUp() const {
+    const int i = up_->currentIndex();
+    if (i == 6 && exactUp_) {
+        return *exactUp_;
+    }
+    return kDirections[std::clamp(i, 0, 5)];
+}
+
+QString WorkholdingLibraryDialog::applyUpPick(const WorkholdingPart& part, const cad::Model& model,
+                                              cad::SubShapeType type, int index, bool ask) {
+    std::optional<Vec3> direction;
+    DatumShape shape = DatumShape::Point;
+    try {
+        // The exact geometry of the face or edge (its STEP B-rep), as datums are picked.
+        const WorkholdingDatum d = document::pickedDatum("", part, model, type, index);
+        shape = d.shape;
+        direction = document::upFromDatum(d);
+    } catch (const Error& e) {
+        return QString::fromUtf8(e.what());
+    }
+    if (!direction) {
+        return tr("A vertex has no direction: click a face, or an edge along up.");
+    }
+    startPick(Pick::None);
+    const QString from = shape == DatumShape::Plane  ? tr("the face's outward normal")
+                         : shape == DatumShape::Axis ? tr("the round face's axis")
+                         : shape == DatumShape::Line ? tr("the edge's direction")
+                                                     : tr("the face's normal there");
+    const bool line = shape == DatumShape::Axis || shape == DatumShape::Line;
+    const QString flip = line ? tr(" Flip it if it points down.") : QString();
+    const document::UpSnap snap = document::snapUp(*direction);
+    const Vec3 axis = kDirections[snap.axis];
+    if (snap.snapped) {
+        setUp(axis);
+        return snap.degrees < 1e-6 ? tr("Up is %1: %2.%3").arg(modelDirection(axis), from, flip)
+                                   : tr("Up is %1: %2, %3 degrees off it, taken as the axis.%4")
+                                         .arg(modelDirection(axis), from,
+                                              QString::number(snap.degrees, 'f', 1), flip);
+    }
+    const bool keep =
+        ask && QMessageBox::question(
+                   this, tr("Model axis pointing up"),
+                   tr("%1 points %2, %3 degrees from the nearest model axis (%4).\n\nKeep this "
+                      "exact direction as up? No takes %4.")
+                       .arg(from, modelDirection(*direction), QString::number(snap.degrees, 'f', 1),
+                            modelDirection(axis))) == QMessageBox::Yes;
+    if (keep) {
+        setUp(*direction);
+        return tr("Up is the exact direction %1: %2.%3")
+            .arg(modelDirection(*direction), from, flip);
+    }
+    setUp(axis);
+    return tr("Up is %1, the nearest model axis: %2 is %3 degrees off it.%4")
+        .arg(modelDirection(axis), from, QString::number(snap.degrees, 'f', 1), flip);
+}
+
+void WorkholdingLibraryDialog::refreshUpWarning(const document::WorkholdingTemplate& w) {
+    const std::optional<document::UpMismatch> m = document::upMismatch(w);
+    seatUp_.reset();
+    if (!m) {
+        upWarning_->clear();
+        upWarningRow_->hide();
+        return;
+    }
+    seatUp_ = m->seatDirection;
+    upWarning_->setText(
+        tr("Up (%1) is %2 degrees from the direction of '%3' (%4), the seat of holding '%5': a "
+           "setup would hold the stock on its side.")
+            .arg(modelDirection(w.up), QString::number(m->degrees, 'f', 1), qs(m->seat),
+                 modelDirection(m->seatDirection), qs(m->holding)));
+    upWarningRow_->show();
+}
+
+bool WorkholdingLibraryDialog::useSeatUp() {
+    if (!seatUp_) {
+        return false;
+    }
+    setUp(*seatUp_);
+    return true;
+}
+
+QString WorkholdingLibraryDialog::upWarningText() const {
+    return seatUp_ ? upWarning_->text() : QString();
+}
+
+QString WorkholdingLibraryDialog::pickUp(const std::string& partName, cad::SubShapeType type,
+                                         int index) {
+    const std::vector<WorkholdingPart> parts = editedParts();
+    const auto it = std::find_if(parts.begin(), parts.end(),
+                                 [&](const WorkholdingPart& p) { return p.name == partName; });
+    const cad::Model* model = it == parts.end() ? nullptr : modelOf(it->sha256);
+    if (!model) {
+        return tr("No part '%1'.").arg(qs(partName));
+    }
+    const QString note = applyUpPick(*it, *model, type, index, false);
+    pickNote_->setText(note);
+    return note;
 }
 
 void WorkholdingLibraryDialog::rebuildJog() {
@@ -2114,6 +2310,46 @@ void WorkholdingLibraryDialog::updatePreview() {
     }
     for (const auto& [from, to] : stockEdges) {
         scene.lines.push_back({from, to, true, 0xFFD040u});
+    }
+    // Up, as an arrow from the jaw tops (or the parts' middle), and the model's own axes at its
+    // origin: an up chosen sideways shows as an arrow lying along the jaws.
+    geom3d::Aabb3 bounds;
+    for (const auto& vm : models) {
+        bounds.extend(vm.model.info().bounds);
+    }
+    if (!bounds.isEmpty() && w.up.norm() > 1e-12) {
+        const Vec3 up = w.up.normalized();
+        Vec3 from = bounds.center();
+        const std::optional<document::UpMismatch> wrong = document::upMismatch(w);
+        if (!w.holdings.empty() && !w.holdings.front().seat.empty()) {
+            try {
+                from = document::datumAt(w, w.holdings.front().seat, travel).point;
+            } catch (const Error&) {
+                // shown in the issues
+            }
+        }
+        const double length = std::max(30.0, 0.5 * (bounds.max - bounds.min).norm());
+        auto arrow = [&](const Vec3& d, std::uint32_t colour, bool hot, const QString& text) {
+            const Vec3 tip = from + length * d;
+            Vec3 side = d.cross(Vec3::UnitZ());
+            if (side.norm() < 0.1) {
+                side = d.cross(Vec3::UnitX());
+            }
+            side = side.normalized() * (0.08 * length);
+            const Vec3 back = tip - 0.18 * length * d;
+            scene.lines.push_back({from, tip, hot, colour});
+            scene.lines.push_back({tip, back + side, hot, colour});
+            scene.lines.push_back({tip, back - side, hot, colour});
+            scene.labels.push_back({tip, text.toStdString(), colour});
+        };
+        if (wrong) {
+            arrow(wrong->seatDirection, kUpColour, false,
+                  tr("%1: %2").arg(qs(wrong->seat), modelDirection(wrong->seatDirection)));
+        }
+        arrow(up, wrong ? kUpWrongColour : kUpColour, true,
+              wrong ? tr("Up: %1 (not the jaw tops)").arg(modelDirection(up))
+                    : tr("Up: %1").arg(modelDirection(up)));
+        scene.frames.push_back(Transform3::Identity());
     }
     preview_->setMachine(scene);
     if (!previewFitted_ && !models.empty()) {

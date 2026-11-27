@@ -239,6 +239,8 @@ inline constexpr double kEnclosureBack = 1100; // back wall y = 1090 .. 1100, op
 /// vise_assembly.step: the same three vise bodies (base, fixed jaw, moving jaw) in one file.
 /// selfcentring_assembly.step: a self-centring vise, its jaws modelled 50 mm apart about Y 0
 /// (base, then the jaw on -Y, then the jaw on +Y), opening along +Y.
+/// selfcentring_yup_assembly.step: the same vise drawn Y-up (turned -90 degrees about X: its Z is
+/// the model's +Y, the first jaw on +Z, the second on -Z, opening along -Z).
 namespace selfcentring {
 inline constexpr double kJawHalfWidth = 40; // the jaws span X -40..40
 inline constexpr double kJawThickness = 20;

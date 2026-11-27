@@ -410,6 +410,14 @@ TopoDS_Shape selfCentringVise() {
          box(-kJawHalfWidth, face, kBaseTop, kJawHalfWidth, face + kJawThickness, kJawTop)});
 }
 
+// The self-centring vise drawn Y-up, as some CAD systems model it: its Z turned to +Y (the jaw
+// tops face +Y, the jaws close along Z). Its template's up must be the model's +Y.
+TopoDS_Shape selfCentringViseYUp() {
+    gp_Trsf turn;
+    turn.SetRotation(gp_Ax1(gp_Pnt(0, 0, 0), gp_Dir(1, 0, 0)), -std::numbers::pi / 2.0);
+    return BRepBuilderAPI_Transform(selfCentringVise(), turn, true).Shape();
+}
+
 // The self-centring vise as a maker's file may have it: the first jaw in two bodies (a jaw and the
 // plate on it) and a riser under the base the fixture does not have.
 TopoDS_Shape selfCentringViseWithExtras() {
@@ -799,6 +807,7 @@ int main(int argc, char** argv) {
         write(compound({viseBase(), viseFixedJaw(), viseMovingJaw()}), "vise_assembly.step");
         write(selfCentringVise(), "selfcentring_assembly.step");
         write(selfCentringViseWithExtras(), "selfcentring_extras.step");
+        write(selfCentringViseYUp(), "selfcentring_yup_assembly.step");
         write(dovetailFixture(), "dovetail_assembly.step");
         write(fixturePlate(), "plate_assembly.step");
         write(latheChuck(), "chuck_assembly.step");

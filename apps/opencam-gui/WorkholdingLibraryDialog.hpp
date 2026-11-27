@@ -70,6 +70,13 @@ public:
     std::string pickDatum(const std::string& partName, cad::SubShapeType type, int index);
     void jog(const std::string& member, double travel);
     QString issuesText() const;
+    /// Test hooks for up: picks it on a part's face or edge as a click with Pick... would (a
+    /// direction off the model's axes is snapped to the nearest, as when the user says No),
+    /// returning the note shown; the warning shown when it disagrees with the jaw tops (empty:
+    /// none); the "Use the jaw tops' direction" button.
+    QString pickUp(const std::string& partName, cad::SubShapeType type, int index);
+    QString upWarningText() const;
+    bool useSeatUp();
 
 protected:
     void reject() override;
@@ -80,7 +87,7 @@ private:
         document::WorkholdingPackage package;
         std::filesystem::path file; ///< Empty until saved.
     };
-    enum class Pick { None, Datum, PointOnFace };
+    enum class Pick { None, Datum, PointOnFace, Up };
 
     void buildUi();
     void reloadList(const std::optional<Uuid>& selectId = std::nullopt);
@@ -142,6 +149,17 @@ private:
     void refreshSimple();
     void openingRangeEdited();
 
+    // Up: which axis of the model points out of the fixture.
+    /// Shows `direction` in the combo (an axis, or the exact direction as its own entry).
+    void showUp(const Vec3& direction);
+    /// Sets up as the user did (marks the template changed, redraws).
+    void setUp(const Vec3& direction);
+    Vec3 shownUp() const;
+    /// Up from a face or edge picked on a part; `ask` whether to keep a direction off the axes.
+    QString applyUpPick(const document::WorkholdingPart& part, const cad::Model& model,
+                        cad::SubShapeType type, int index, bool ask);
+    void refreshUpWarning(const document::WorkholdingTemplate& w);
+
     // Preview.
     void startPick(Pick mode);
     void previewPicked();
@@ -179,6 +197,13 @@ private:
     QLineEdit* name_ = nullptr;
     QLineEdit* description_ = nullptr;
     QComboBox* up_ = nullptr;
+    QPushButton* pickUp_ = nullptr;
+    QPushButton* flipUp_ = nullptr;
+    QWidget* upWarningRow_ = nullptr;
+    QLabel* upWarning_ = nullptr;
+    QPushButton* useSeatUp_ = nullptr;
+    std::optional<Vec3> seatUp_;  ///< The jaw tops' direction while it disagrees with up.
+    std::optional<Vec3> exactUp_; ///< An up off the model's axes: the combo's 7th entry.
     QComboBox* mount_ = nullptr;
     PartTable* parts_ = nullptr;
     QTableWidget* members_ = nullptr;
