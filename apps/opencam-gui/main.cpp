@@ -172,6 +172,7 @@
 #include <QSpinBox>
 #include <QStandardPaths>
 #include <QStyleOption>
+#include <QTabWidget>
 #include <QTableView>
 #include <QTemporaryDir>
 #include <QThread>
@@ -239,6 +240,18 @@ testJawSets(ocam::document::WorkholdingTemplate& chuck) {
 /// Right-clicks the current item of the project tree and chooses an item of the menu that opens,
 /// as the user would. Blocks while the menu is open, as the menu does; false when it has no such
 /// item.
+/// Shows the tab `key` of the operation page in the Properties panel; false when it has none.
+bool showOperationTab(ocam::gui::MainWindow& window, const QString& key) {
+    auto* tabs = window.findChild<QTabWidget*>(QStringLiteral("operationTabs"));
+    QWidget* tab = tabs ? tabs->findChild<QWidget*>(QStringLiteral("tab_") + key) : nullptr;
+    if (!tab) {
+        return false;
+    }
+    tabs->setCurrentWidget(tab);
+    QApplication::processEvents();
+    return true;
+}
+
 bool chooseFromTreeMenu(ocam::gui::MainWindow& window, const QString& item) {
     auto* tree = window.findChild<ocam::gui::ProjectTree*>();
     QTreeWidgetItem* current = tree ? tree->currentItem() : nullptr;
@@ -1057,6 +1070,12 @@ int main(int argc, char** argv) {
         QStringLiteral("With --smoke-test, select operation <n> (0-based) of the first setup."),
         QStringLiteral("n"));
     parser.addOption(selectOperation);
+    const QCommandLineOption panelTab(
+        QStringLiteral("panel-tab"),
+        QStringLiteral("With --select-operation, show the operation page's tab <key> (cutting, "
+                       "geometry, orientation, heights or parameters)."),
+        QStringLiteral("key"));
+    parser.addOption(panelTab);
     const QCommandLineOption toolpathData(
         QStringLiteral("toolpath-data-test"),
         QStringLiteral("With --select-operation, open Show Toolpath Data from the operation's "
@@ -2690,6 +2709,11 @@ int main(int argc, char** argv) {
                 if (parser.isSet(selectOperation)) {
                     window.selectOperation(parser.value(selectOperation).toInt());
                 }
+                if (parser.isSet(panelTab) && !showOperationTab(window, parser.value(panelTab))) {
+                    std::fprintf(stderr, "no tab %s\n", qPrintable(parser.value(panelTab)));
+                    QApplication::exit(2);
+                    return;
+                }
                 if (parser.isSet(setFlag)) {
                     // As clicking it: through the check box's own signals.
                     const QStringList kv = parser.value(setFlag).split(QLatin1Char('='));
@@ -2740,6 +2764,19 @@ int main(int argc, char** argv) {
                                  .split(QLatin1Char(','), Qt::SkipEmptyParts)) {
                             if (shown(key)) {
                                 std::fprintf(stderr, "%s is shown\n", qPrintable(key));
+                                ++failures;
+                            }
+                        }
+                        // Redrawn for the change, the page shows the tab it showed.
+                        if (parser.isSet(panelTab)) {
+                            const auto* tabs =
+                                window.findChild<QTabWidget*>(QStringLiteral("operationTabs"));
+                            const QWidget* tab = tabs ? tabs->currentWidget() : nullptr;
+                            const QString want = QStringLiteral("tab_") + parser.value(panelTab);
+                            if (!tab || tab->objectName() != want) {
+                                std::fprintf(stderr, "the page shows %s, not %s\n",
+                                             tab ? qPrintable(tab->objectName()) : "no tab",
+                                             qPrintable(want));
                                 ++failures;
                             }
                         }
@@ -2812,6 +2849,7 @@ int main(int argc, char** argv) {
                     }
                     add->action->trigger();
                     QTimer::singleShot(1000, &app, [&] {
+                        showOperationTab(window, QStringLiteral("geometry"));
                         const QString selectText =
                             QCoreApplication::translate("ocam::gui::PropertyPanel", "Select");
                         for (QPushButton* b : window.findChildren<QPushButton*>()) {
@@ -4381,53 +4419,79 @@ int main(int argc, char** argv) {
                         const QDir dir(parser.value(panelSweep));
                         QDir().mkpath(dir.absolutePath());
                         int problems = 0;
-                        int lastField = -1;
                         // About a laptop screen's height, so the page scrolls.
                         window.showNormal();
                         window.resize(window.width(), 900);
-                        for (int w = 220; w <= 640; ++w) {
-                            window.resizeDocks({dock}, {w}, Qt::Horizontal);
-                            for (int k = 0; k < 4; ++k) {
-                                QApplication::processEvents();
+                        // A page with tabs is swept on each of them.
+                        auto* tabs = area->widget()->findChild<QTabWidget*>();
+                        const int tabCount = tabs ? tabs->count() : 1;
+                        for (int t = 0; t < tabCount; ++t) {
+                            QString name; // the tab's, in the file names
+                            if (tabs) {
+                                tabs->setCurrentIndex(t);
+                                name = tabs->widget(t)->objectName() + QLatin1Char('_');
                             }
-                            const int page = area->widget()->width();
-                            const int view = area->viewport()->width();
-                            // The first line edit (the name): the field column's width.
-                            const auto edits = area->widget()->findChildren<QLineEdit*>();
-                            const int field = edits.isEmpty() ? -1 : edits.front()->width();
-                            QString problem;
-                            // A label whose text needs more lines than its row shows.
-                            for (QLabel* l : area->widget()->findChildren<QLabel*>()) {
-                                if (l->isVisible() && l->wordWrap() && !l->text().isEmpty() &&
-                                    l->heightForWidth(l->width()) > l->height() + 1) {
-                                    problem = QStringLiteral("label '%1' cut off (%2 of %3 px)")
-                                                  .arg(l->text().left(30))
-                                                  .arg(l->height())
-                                                  .arg(l->heightForWidth(l->width()));
-                                    break;
+                            int lastField = -1;
+                            // Every width, or every 4th on each tab of a page with tabs.
+                            const int step = tabs ? 4 : 1;
+                            for (int w = 220; w <= 640; w += step) {
+                                window.resizeDocks({dock}, {w}, Qt::Horizontal);
+                                for (int k = 0; k < 4; ++k) {
+                                    QApplication::processEvents();
                                 }
-                            }
-                            if (!problem.isEmpty()) {
-                                // reported below
-                            } else if (page > view + 1 &&
-                                       !area->horizontalScrollBar()->isVisible()) {
-                                problem =
-                                    QStringLiteral("page %1 cut off at %2").arg(page).arg(view);
-                            } else if (lastField >= 0 && field < lastField - 4) {
-                                problem = QStringLiteral("fields squeezed from %1 to %2")
-                                              .arg(lastField)
-                                              .arg(field);
-                            }
-                            lastField = field;
-                            if (w == 260 || w == 360 || w == 480) { // to look at
-                                dock->grab().save(dir.filePath(QStringLiteral("at_%1.png").arg(w)));
-                            }
-                            if (!problem.isEmpty()) {
-                                std::printf("width %d: %s\n", dock->width(),
-                                            problem.toUtf8().constData());
-                                if (problems++ < 6) {
+                                // The first line edit (the name): the field column's width.
+                                const auto edits = area->widget()->findChildren<QLineEdit*>();
+                                const int field = edits.isEmpty() ? -1 : edits.front()->width();
+                                QString problem;
+                                // A label whose text needs more lines than its row shows.
+                                for (QLabel* l : area->widget()->findChildren<QLabel*>()) {
+                                    if (l->isVisible() && l->wordWrap() && !l->text().isEmpty() &&
+                                        l->heightForWidth(l->width()) > l->height() + 1) {
+                                        problem = QStringLiteral("label '%1' cut off (%2 of %3 px)")
+                                                      .arg(l->text().left(30))
+                                                      .arg(l->height())
+                                                      .arg(l->heightForWidth(l->width()));
+                                        break;
+                                    }
+                                }
+                                // The panel, and the shown tab's own page: wider than it shows
+                                // only with a scroll bar.
+                                QList<QScrollArea*> areas{area};
+                                if (tabs) {
+                                    if (auto* tab =
+                                            qobject_cast<QScrollArea*>(tabs->currentWidget())) {
+                                        areas.append(tab);
+                                    }
+                                }
+                                for (QScrollArea* a : areas) {
+                                    const int page = a->widget()->width();
+                                    const int view = a->viewport()->width();
+                                    if (problem.isEmpty() && page > view + 1 &&
+                                        !a->horizontalScrollBar()->isVisible()) {
+                                        problem = QStringLiteral("page %1 cut off at %2")
+                                                      .arg(page)
+                                                      .arg(view);
+                                    }
+                                }
+                                if (problem.isEmpty() && lastField >= 0 && field < lastField - 4) {
+                                    problem = QStringLiteral("fields squeezed from %1 to %2")
+                                                  .arg(lastField)
+                                                  .arg(field);
+                                }
+                                lastField = field;
+                                if (w == 260 || w == 360 || w == 480) { // to look at
                                     dock->grab().save(dir.filePath(
-                                        QStringLiteral("panel_%1.png").arg(dock->width())));
+                                        QStringLiteral("at_%1%2.png").arg(name).arg(w)));
+                                }
+                                if (!problem.isEmpty()) {
+                                    std::printf("%swidth %d: %s\n", name.toUtf8().constData(),
+                                                dock->width(), problem.toUtf8().constData());
+                                    if (problems++ < 6) {
+                                        dock->grab().save(
+                                            dir.filePath(QStringLiteral("panel_%1%2.png")
+                                                             .arg(name)
+                                                             .arg(dock->width())));
+                                    }
                                 }
                             }
                         }
