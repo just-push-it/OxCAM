@@ -654,13 +654,15 @@ TEST_CASE("Z-level roughing keeps the engagement within the limit",
             return replay(tp, 0.0, 5.0, material, {Vec2(-20, -6.35), Vec2(20, 6.35)}, 3.175);
         };
         const Replay plain = lower(zLevelRough(plate, stock, 10.0, 0.0, ps, hs.context()));
-        ps.material = [&](double, double) { return stock; };
+        ps.material = [&](double, double) {
+            return stock;
+        };
         const auto tp = zLevelRough(plate, stock, 10.0, 0.0, ps, hs.context());
         INFO("warnings: " << (tp.warnings.empty() ? "" : tp.warnings.front()));
         const Replay rp = lower(tp);
         INFO("largest at " << rp.at.transpose() << " on move " << rp.move << ", left "
-                           << rp.leftover << " mm2, idle " << rp.idle << " mm (plain "
-                           << plain.idle << " mm)");
+                           << rp.leftover << " mm2, idle " << rp.idle << " mm (plain " << plain.idle
+                           << " mm)");
         // 319 mm in air with the stock alone overhead, 231 mm after.
         CHECK(rp.idle < plain.idle + 10.0);
         CHECK(rp.largest <= engagementAngle(0.8 * 6.35 + 0.3, 3.175) + 0.15);
