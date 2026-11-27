@@ -296,45 +296,86 @@ bool anyToolTipHolds(const QComboBox* box, const QString& text) {
 }
 
 /// Opens the list's pop-up and clicks the entry holding `text`, as a user would; false when the
-/// list has no such entry or the click chose nothing. The list may be gone when it returns: a
-/// choice that changes the project rebuilds the page it is on.
+/// list has no such entry or no click chose it. The list may be gone when it returns: a choice
+/// that changes the project rebuilds the page it is on.
+///
+/// Under load (CI runs hundreds of tests at once on one display) a pop-up can open late, lay out
+/// late, or be closed again before the click, so the click waits for the pop-up and its entry to
+/// be shown, and the pop-up is opened and clicked again, a few times, when a click chose nothing.
+/// The click is sent at once: its press tells the pop-up it is not the click that opened it
+/// (QComboBox ignores a release that soon after opening only when no press came first), and any
+/// wait is a chance for the pop-up to be closed.
 bool chooseInPopup(QComboBox* box, const QString& text) {
     const auto settle = [] {
         for (int i = 0; i < 5; ++i) {
             QApplication::processEvents();
         }
     };
+    // Lets the application work until `ready` holds, for up to `ms` milliseconds.
+    const auto waitUntil = [](const auto& ready, int ms) {
+        QElapsedTimer clock;
+        clock.start();
+        while (!ready()) {
+            if (clock.elapsed() > ms) {
+                return false;
+            }
+            QApplication::processEvents(QEventLoop::AllEvents, 10);
+            QThread::msleep(5);
+        }
+        return true;
+    };
     const int i = box ? box->findText(text, Qt::MatchContains) : -1;
     if (i < 0) {
         return false;
     }
-    box->showPopup();
-    settle();
-    // A press this soon after the pop-up opened would be taken as the click that opened it.
-    QThread::msleep(static_cast<unsigned long>(QApplication::doubleClickInterval()) + 50);
-    settle();
-    QAbstractItemView* view = box->view();
-    const QModelIndex index = view->model()->index(i, box->modelColumn(), view->rootIndex());
-    view->scrollTo(index);
-    settle();
-    const QPointF at = view->visualRect(index).center();
-    const QPointF global = view->viewport()->mapToGlobal(at);
-    QMouseEvent move(QEvent::MouseMove, at, global, Qt::NoButton, Qt::NoButton, Qt::NoModifier);
-    QApplication::sendEvent(view->viewport(), &move);
-    QMouseEvent press(QEvent::MouseButtonPress, at, global, Qt::LeftButton, Qt::LeftButton,
-                      Qt::NoModifier);
-    QApplication::sendEvent(view->viewport(), &press);
-    QMouseEvent release(QEvent::MouseButtonRelease, at, global, Qt::LeftButton, Qt::NoButton,
-                        Qt::NoModifier);
     const QPointer<QComboBox> still(box);
-    QApplication::sendEvent(view->viewport(), &release);
-    settle();
-    if (still && still->view()->isVisible()) {
-        still->hidePopup(); // the click missed: nothing was chosen
+    // The list says a click chose an entry, whatever the window then makes of the choice (it may
+    // put the list back, as for a tool an operation uses).
+    auto chosen = std::make_shared<bool>(false);
+    const QMetaObject::Connection heard =
+        QObject::connect(box, &QComboBox::activated, box, [chosen] { *chosen = true; });
+    constexpr int kTries = 5;
+    for (int attempt = 0; attempt < kTries && still && !*chosen; ++attempt) {
+        if (still->view()->window()->isVisible()) {
+            still->hidePopup(); // the last try's pop-up, still open
+            settle();
+        }
+        still->showPopup();
+        QAbstractItemView* view = still->view();
+        QWidget* popup = view->window();
+        const QModelIndex index = view->model()->index(i, still->modelColumn(), view->rootIndex());
+        const auto shown = [&] {
+            if (!still || !popup->isVisible() || QApplication::activePopupWidget() != popup) {
+                return false;
+            }
+            view->scrollTo(index);
+            const QRect rect = view->visualRect(index);
+            return !rect.isEmpty() && view->viewport()->rect().contains(rect.center());
+        };
+        if (!waitUntil(shown, 5000)) {
+            continue;
+        }
+        const QPointF at = QRectF(view->visualRect(index)).center();
+        const QPointF global = view->viewport()->mapToGlobal(at);
+        QMouseEvent move(QEvent::MouseMove, at, global, Qt::NoButton, Qt::NoButton, Qt::NoModifier);
+        QApplication::sendEvent(view->viewport(), &move);
+        QMouseEvent press(QEvent::MouseButtonPress, at, global, Qt::LeftButton, Qt::LeftButton,
+                          Qt::NoModifier);
+        QApplication::sendEvent(view->viewport(), &press);
+        QMouseEvent release(QEvent::MouseButtonRelease, at, global, Qt::LeftButton, Qt::NoButton,
+                            Qt::NoModifier);
+        QApplication::sendEvent(view->viewport(), &release);
         settle();
-        return false;
+        if (!still) {
+            *chosen = true; // the choice rebuilt the page, the list with it
+        }
     }
-    return true;
+    if (still && !*chosen && still->view()->window()->isVisible()) {
+        still->hidePopup(); // every click missed: nothing was chosen
+        settle();
+    }
+    QObject::disconnect(heard); // nothing to do if the list is gone
+    return *chosen;
 }
 
 /// Lets the window work (a refresh, then its toolpath jobs) until no toolpath is being generated.
