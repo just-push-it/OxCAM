@@ -120,6 +120,25 @@ once, at the fine level above it, by traced passes from the cleared outside:
 The simulation finds no collision and the gouge as before (from other operations); 113 mm³
 more is left (0.05 %), the largest excess unchanged.
 
+The material overhead (where links at depth and hops may not pass under) was still the
+in-process stock above the level above, as before the operation: every level under the first
+lay under the stock the operation had just cut away, no link at depth was clear, and the medial
+circles went round through the air instead of crossing their backs straight (DL-0031 item 9).
+The maintainer saw it on a titanium test part (5" vise, Ø12.7 end mill, a slot below a wider
+pocket): "3D adaptive roughing should cut off the back end of circles that are not cutting
+anything". Overhead is now the stock still standing above the level above, counted as the air
+is. On that part:
+
+| Titanium test part, 3D rough | Moves | Links at depth | Rapids | Plunges | Estimate | Removed |
+|---|---|---|---|---|---|---|
+| Before | 3498 | 0 | 486 | 128 | 649.6 s | 130707.9 mm³ |
+| After | 3231 | 184 | 210 | 53 | 600.9 s | 130686.3 mm³ |
+
+The simulation finds no collision and no gouge; 21.6 mm³ more is left (0.02 %, what the
+crossed arcs grazed), the largest excess unchanged. `ClearingTest` "rest roughing: a level
+under one this operation cut crosses the circles' backs": the narrow slot's lower level spends
+as long in air as without in-process stock (231 mm; 319 mm before).
+
 **Engagement-limited clearing** (`clearing`: "Engagement-limited", the default; "Offset
 passes" turns the limit off). High-risk IP category, proceeding on the maintainer's decision
 without counsel sign-off: IP-0004. This replaces both the loop tree for open pieces and the

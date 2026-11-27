@@ -90,6 +90,9 @@ struct LevelClearing {
     std::optional<double> helixRadius; ///< [mm]; unset: kHelixRadiusShare r.
     /// Medial-axis clearing: open areas (air to start from) by circles too, instead of traced.
     bool medialOpenAreas = false;
+    /// Medial-axis clearing: the lines across the circles' backs (out of the material) rise
+    /// this far above the level and come back down where they meet material again; 0: at depth.
+    double linkLift = 0.0;
 };
 
 /// The ways a level's clearing moves the tool from where it is to a clear point of the area

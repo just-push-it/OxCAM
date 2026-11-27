@@ -557,8 +557,26 @@ ClearingReport clearLevelMedial(toolpath::PathBuilder& b, const LevelClearing& i
         };
         for (const Chord& c : chords) {
             cutTo(samples[c.from].span, samples[c.from].u);
+            const Vec2 s = samples[c.from].q;
             const Vec2 e = samples[c.to].q;
-            if ((e - samples[c.from].q).norm() > 1e-9) {
+            const double len = (e - s).norm();
+            if (len > 1e-9) {
+                // Lifted (the user's link lift): up off the floor at 45 degrees (steeper on a
+                // line shorter than twice the lift), across, and back down the same way to
+                // where it meets material. The line is clear at
+                // depth and of `overhead` (the material above the level), so the column over
+                // it is too.
+                if (in.linkLift > 0.0) {
+                    const Vec2 d = (e - s) / len;
+                    const double run = std::min(in.linkLift, 0.5 * len);
+                    const double top = z + in.linkLift;
+                    const Vec2 up = s + run * d;
+                    const Vec2 down = e - run * d;
+                    b.feed(Vec3(up.x(), up.y(), top), FeedClass::Link, ctx.feeds.cut);
+                    if ((down - up).norm() > 1e-9) {
+                        b.feed(Vec3(down.x(), down.y(), top), FeedClass::Link, ctx.feeds.cut);
+                    }
+                }
                 b.feed(Vec3(e.x(), e.y(), z), FeedClass::Link, ctx.feeds.cut);
                 taken.push_back(e);
             }
