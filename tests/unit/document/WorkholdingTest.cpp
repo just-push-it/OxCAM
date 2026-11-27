@@ -26,6 +26,7 @@
 #include <filesystem>
 #include <functional>
 #include <map>
+#include <numbers>
 #include <set>
 
 using namespace ocam;
@@ -752,6 +753,64 @@ TEST_CASE("the setup wizard's answers make a standard vise", "[document][workhol
     wrong.moving = {in.id(0)};
     CHECK_THROWS_WITH(buildWorkholding(wrong, in.package.workholding.parts, in.modelFn()),
                       ContainsSubstring("moving part"));
+}
+
+TEST_CASE("up snaps to the model's axes and is checked against the jaw tops",
+          "[document][workholding][up]") {
+    CHECK(modelAxisIndex(Vec3(0, 2, 0)) == 2);
+    CHECK(modelAxisIndex(Vec3(0, 1, 0.01)) == -1);
+    CHECK(modelDirectionText(-Vec3::UnitZ()) == "-Z");
+    CHECK(modelDirectionText(Vec3(1, 0, 1)) == "0.707, 0, 0.707");
+    // Within a few degrees of an axis: that axis; further off: the nearest one, not taken.
+    const UpSnap near = snapUp(Vec3(0.02, 1, 0));
+    CHECK(near.snapped);
+    CHECK(near.axis == 2);
+    CHECK_THAT(near.degrees, WithinAbs(std::atan(0.02) * 180.0 / std::numbers::pi, 1e-9));
+    const UpSnap off = snapUp(Vec3(0.5, 1, 0));
+    CHECK_FALSE(off.snapped);
+    CHECK(off.axis == 2);
+    CHECK_THAT(off.degrees, WithinAbs(std::atan(0.5) * 180.0 / std::numbers::pi, 1e-9));
+    CHECK(snapUp(-Vec3::UnitX()).axis == 1);
+
+    WorkholdingDatum d;
+    d.shape = DatumShape::Line;
+    d.direction = Vec3(0, 0, 3);
+    CHECK(upFromDatum(d)->isApprox(Vec3::UnitZ()));
+    CHECK(upFromDatum(d, true)->isApprox(-Vec3::UnitZ()));
+    d.shape = DatumShape::Point;
+    d.direction = Vec3::Zero(); // a vertex
+    CHECK_FALSE(upFromDatum(d));
+
+    // A vise drawn Y-up: the wizard's jaw tops face the model's +Y, and so does its up.
+    const Imported in = importParts("selfcentring_yup_assembly.step");
+    WorkholdingAnswers a;
+    a.type = FixtureType::SelfCentringVise;
+    a.opposite = {in.id(1)};
+    a.moving = {in.id(2)};
+    a.faceA = in.face(1, plane(-Vec3::UnitZ()));
+    a.faceB = in.face(2, plane(Vec3::UnitZ()));
+    a.top = in.face(2, plane(Vec3::UnitY()));
+    WorkholdingTemplate w = buildWorkholding(a, in.package.workholding.parts, in.modelFn());
+    CHECK(w.up.isApprox(Vec3::UnitY()));
+    CHECK_FALSE(upMismatch(w));
+    // Picking the jaw-top face on the exact geometry gives +Y too.
+    const WorkholdingPart& jaw = in.package.workholding.parts[2];
+    const WorkholdingDatum top =
+        pickedDatum("", jaw, *in.modelOf(jaw), cad::SubShapeType::Face, a.top->index);
+    CHECK(snapUp(*upFromDatum(top)).axis == 2);
+    // Saved with up +X (upright on screen, sideways for the stock): the jaw tops disagree.
+    w.up = Vec3::UnitX();
+    const auto mismatch = upMismatch(w);
+    REQUIRE(mismatch);
+    CHECK(mismatch->seat == "Jaw tops");
+    CHECK(mismatch->seatDirection.isApprox(Vec3::UnitY()));
+    CHECK_THAT(mismatch->degrees, WithinAbs(90.0, 1e-9));
+    // A degree off is within the tolerance; no seat, nothing to compare.
+    w.up = Vec3(std::tan(0.5 * std::numbers::pi / 180.0), 1, 0);
+    CHECK_FALSE(upMismatch(w));
+    w.holdings.clear();
+    w.up = Vec3::UnitX();
+    CHECK_FALSE(upMismatch(w));
 }
 
 TEST_CASE("the setup wizard's self-centring vise moves its jaws together",

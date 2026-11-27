@@ -709,6 +709,15 @@ if(OCAM_BUILD_TESTS)
                 --screenshot-wizard ${PROJECT_BINARY_DIR}/workholding_wizard.png
                 --workholding-step ${OCAM_FIXTURE_DIR}/selfcentring_assembly.step)
     set_tests_properties(gui.workholding_wizard PROPERTIES LABELS gui TIMEOUT 60)
+    # A vise drawn Y-up: the wizard's up is the model's +Y; saved with up +X the editor warns and
+    # draws up sideways; the jaw tops' direction, or a pick on them, puts it right.
+    add_test(NAME gui.workholding_up
+        COMMAND oxcam-gui --settings-dir ${PROJECT_BINARY_DIR}/test-settings-workholding
+                --workholding-folder ${PROJECT_BINARY_DIR}/workholding-up-library
+                --workholding-up-test ${PROJECT_BINARY_DIR}/workholding_up.png
+                --workholding-step ${OCAM_FIXTURE_DIR}/selfcentring_yup_assembly.step)
+    set_tests_properties(gui.workholding_up PROPERTIES LABELS gui TIMEOUT 60
+        PASS_REGULAR_EXPRESSION "workholding up test: all ok")
     # A 3-jaw chuck from clicks: its jaws move together and grip a trial bar.
     add_test(NAME gui.workholding_wizard_chuck
         COMMAND oxcam-gui --settings-dir ${PROJECT_BINARY_DIR}/test-settings-workholding

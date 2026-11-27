@@ -26,6 +26,7 @@
 #include <limits>
 #include <memory>
 #include <mutex>
+#include <numbers>
 #include <regex>
 #include <set>
 
@@ -926,6 +927,97 @@ WorkholdingDatum pickedDatum(std::string name, const WorkholdingPart& part, cons
     d.point = g.point;
     d.direction = g.direction;
     return d;
+}
+
+Vec3 modelAxis(int index) {
+    static const Vec3 axes[] = {Vec3::UnitX(),  -Vec3::UnitX(), Vec3::UnitY(),
+                                -Vec3::UnitY(), Vec3::UnitZ(),  -Vec3::UnitZ()};
+    return axes[std::clamp(index, 0, 5)];
+}
+
+int modelAxisIndex(const Vec3& direction) {
+    if (direction.norm() < 1e-12) {
+        return -1;
+    }
+    const Vec3 d = direction.normalized();
+    for (int i = 0; i < 6; ++i) {
+        if ((d - modelAxis(i)).norm() < 1e-6) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+std::string modelDirectionText(const Vec3& direction) {
+    static const char* names[] = {"+X", "-X", "+Y", "-Y", "+Z", "-Z"};
+    if (const int i = modelAxisIndex(direction); i >= 0) {
+        return names[i];
+    }
+    const Vec3 d = direction.norm() > 1e-12 ? Vec3(direction.normalized()) : direction;
+    auto n = [](double v) {
+        const double r = std::round(v * 1000.0) / 1000.0;
+        return fmt::format("{:g}", r == 0.0 ? 0.0 : r);
+    };
+    return fmt::format("{}, {}, {}", n(d.x()), n(d.y()), n(d.z()));
+}
+
+std::optional<Vec3> upFromDatum(const WorkholdingDatum& datum, bool flip) {
+    if (datum.direction.norm() < kTol) {
+        return std::nullopt;
+    }
+    Vec3 d = datum.direction.normalized();
+    // A face's normal points out of the material; an axis or a line has no side of its own.
+    if (flip) {
+        d = -d;
+    }
+    return d;
+}
+
+UpSnap snapUp(const Vec3& direction, double snapDegrees) {
+    UpSnap s;
+    if (direction.norm() < 1e-12) {
+        return s;
+    }
+    const Vec3 d = direction.normalized();
+    double best = -2.0;
+    for (int i = 0; i < 6; ++i) {
+        const double c = d.dot(modelAxis(i));
+        if (c > best) {
+            best = c;
+            s.axis = i;
+        }
+    }
+    s.degrees = std::acos(std::clamp(best, -1.0, 1.0)) * 180.0 / std::numbers::pi;
+    s.snapped = s.degrees <= snapDegrees;
+    return s;
+}
+
+std::optional<UpMismatch> upMismatch(const WorkholdingTemplate& w, double toleranceDegrees) {
+    if (w.up.norm() < 1e-12) {
+        return std::nullopt;
+    }
+    const Vec3 up = w.up.normalized();
+    for (const StockHolding& h : w.holdings) {
+        if (h.seat.empty()) {
+            continue;
+        }
+        Vec3 seat;
+        try {
+            seat = datumAt(w, h.seat, memberTravels(w, {})).direction;
+        } catch (const Error&) {
+            continue; // a missing seat is reported by validate()
+        }
+        if (seat.norm() < kTol) {
+            continue;
+        }
+        seat.normalize();
+        const double degrees =
+            std::acos(std::clamp(seat.dot(up), -1.0, 1.0)) * 180.0 / std::numbers::pi;
+        if (degrees > toleranceDegrees) {
+            return UpMismatch{h.name, h.seat, seat, degrees};
+        }
+    }
+    return std::nullopt;
 }
 
 std::string writeWorkholdingArchive(const WorkholdingPackage& package) {

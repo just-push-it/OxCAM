@@ -56,6 +56,8 @@
 //   --screenshot-machines <png>     save the machine library dialog, then exit
 //   --screenshot-workholding <png>  save the workholding library dialog, then exit
 //   --workholding-folder <dir>      use <dir> as the workholding library for this run
+//   --workholding-up-test <png>     a Y-up vise (--workholding-step): the wizard's up, the
+//                                   editor's warning for up +X, up picked on the jaw tops
 //   --fittings-folder <dir>         use <dir> as the turret block and centre library for this run
 //   --machine <id>                  with --screenshot-machines: select this machine
 //   --jog <axis>=<value>            with --screenshot-machines: put a preview axis there (repeat)
@@ -1273,6 +1275,14 @@ int main(int argc, char** argv) {
                        "the wizard to <file>, finish, exit."),
         QStringLiteral("file"));
     parser.addOption(screenshotWizard);
+    const QCommandLineOption workholdingUpTest(
+        QStringLiteral("workholding-up-test"),
+        QStringLiteral("Set up the Y-up self-centring vise of --workholding-step in the wizard "
+                       "(its up must be the model's +Y), save it to --workholding-folder with up "
+                       "+X, check the editor's warning, save the editor to <file>, then use the "
+                       "jaw tops' direction and pick up on the jaw tops (<file>_picked.png)."),
+        QStringLiteral("file"));
+    parser.addOption(workholdingUpTest);
     const QCommandLineOption machineId(
         QStringLiteral("machine"),
         QStringLiteral("With --screenshot-machines, select the machine <id>."),
@@ -1662,6 +1672,132 @@ int main(int argc, char** argv) {
                     code = 7;
                 }
                 QApplication::exit(code);
+            });
+            QApplication::exec();
+            return code;
+        } catch (const ocam::Error& e) {
+            std::fprintf(stderr, "%s\n", e.what());
+            return 3;
+        }
+    }
+    if (parser.isSet(workholdingUpTest)) {
+        namespace doc = ocam::document;
+        using ocam::Vec3;
+        try {
+            ocam::CancelToken cancel;
+            ocam::NullProgress progress;
+            doc::WorkholdingPackage start;
+            start.workholding.name = "Y-up vise";
+            std::map<std::string, ocam::cad::Model> models;
+            std::vector<std::string> names;
+            for (auto& body : ocam::cad::importStepAssembly(
+                     std::filesystem::path(parser.value(workholdingStep).toStdU16String()), cancel,
+                     progress)) {
+                const doc::WorkholdingPart part =
+                    doc::addWorkholdingPart(start, body.name, body.model);
+                models.emplace(part.sha256,
+                               ocam::cad::Model::importStepData(start.files.at(part.sha256),
+                                                                body.name, cancel, progress));
+                names.push_back(body.name);
+            }
+            if (names.size() != 3) {
+                std::fprintf(stderr, "expected a base and two jaws\n");
+                return 3;
+            }
+            int failed = 0;
+            const auto check = [&](const char* what, bool ok) {
+                std::printf("%s: %s\n", what, ok ? "ok" : "WRONG");
+                failed += ok ? 0 : 1;
+            };
+            // The face of a part whose outward normal is `n` (exact geometry).
+            auto face = [&](const ocam::cad::Model& m, const Vec3& n) {
+                for (int f = 1; f <= ocam::cad::subShapeCount(m, ocam::cad::SubShapeType::Face);
+                     ++f) {
+                    const auto g = ocam::cad::datumGeometry(m, ocam::cad::SubShapeType::Face, f);
+                    if (g.shape == ocam::cad::DatumGeometry::Shape::Plane &&
+                        g.direction.isApprox(n, 1e-6)) {
+                        return f;
+                    }
+                }
+                return 0;
+            };
+            doc::WorkholdingPackage built;
+            {
+                ocam::gui::WorkholdingWizard wizard(start, models);
+                wizard.show();
+                wizard.setType(doc::FixtureType::SelfCentringVise);
+                bool ok = wizard.next();
+                ok = ok && wizard.clickPart(names[1]) && wizard.next();
+                ok = ok && wizard.clickPart(names[2]) && wizard.next();
+                auto click = [&](std::size_t i, const Vec3& n) {
+                    ok = ok &&
+                         wizard.clickShape(names[i], ocam::cad::SubShapeType::Face,
+                                           face(*wizard.partModel(names[i]), n)) &&
+                         wizard.next();
+                };
+                click(1, -Vec3::UnitZ()); // the first jaw's clamping face
+                click(2, Vec3::UnitZ());  // the second jaw's
+                click(2, Vec3::UnitY());  // the jaw tops: the model's +Y
+                ok = ok && wizard.next() && wizard.finish();
+                if (!ok) {
+                    std::fprintf(stderr, "the wizard stopped at '%s': %s\n",
+                                 wizard.stepTitle().toUtf8().constData(),
+                                 wizard.problemText().toUtf8().constData());
+                    return 5;
+                }
+                built = wizard.result();
+            }
+            check("the wizard's up is the jaw tops' direction, the model's +Y",
+                  built.workholding.up.isApprox(Vec3::UnitY(), 1e-9) &&
+                      !doc::upMismatch(built.workholding));
+            // Saved upright on screen but with up +X, as the user had it.
+            built.workholding.up = Vec3::UnitX();
+            std::filesystem::remove_all(ocam::gui::WorkholdingLibrary::folder());
+            std::filesystem::create_directories(ocam::gui::WorkholdingLibrary::folder());
+            ocam::gui::WorkholdingLibrary::save(built);
+            ocam::gui::WorkholdingLibraryDialog dialog;
+            dialog.show();
+            dialog.selectTemplate(built.workholding.id);
+            QApplication::processEvents();
+            const QString warning = dialog.upWarningText();
+            std::printf("warning: %s\n", warning.toUtf8().constData());
+            check("up +X is warned about against the jaw tops (+Y)",
+                  warning.contains(QStringLiteral("Model +X")) &&
+                      warning.contains(QStringLiteral("Model +Y")));
+            auto* up = dialog.findChild<QComboBox*>(QStringLiteral("workholdingUp"));
+            check("the up field reads as the model's axis",
+                  up && up->currentText() == QStringLiteral("Model +X") && up->isVisible());
+            const QString png = parser.value(workholdingUpTest);
+            int code = 0;
+            QTimer::singleShot(500, &app, [&] {
+                // The warning and the sideways arrow.
+                const bool saved = dialog.snapshot().save(png);
+                check("use the jaw tops' direction",
+                      dialog.useSeatUp() &&
+                          dialog.editedPackage().workholding.up.isApprox(Vec3::UnitY(), 1e-9) &&
+                          dialog.upWarningText().isEmpty());
+                if (up) {
+                    up->setCurrentIndex(0); // +X again, by hand
+                }
+                check("the warning is back for +X", !dialog.upWarningText().isEmpty());
+                const auto& jaw = built.workholding.parts[2];
+                const QString note = dialog.pickUp(jaw.name, ocam::cad::SubShapeType::Face,
+                                                   face(models.at(jaw.sha256), Vec3::UnitY()));
+                std::printf("picked: %s\n", note.toUtf8().constData());
+                check("picking the jaw-top face sets the model's +Y",
+                      dialog.editedPackage().workholding.up.isApprox(Vec3::UnitY(), 1e-9) &&
+                          dialog.upWarningText().isEmpty());
+                QString picked = png;
+                picked.replace(QStringLiteral(".png"), QStringLiteral("_picked.png"));
+                QTimer::singleShot(300, &app, [&, saved, picked] {
+                    const bool savedPicked = dialog.snapshot().save(picked);
+                    if (failed == 0 && saved && savedPicked) {
+                        std::printf("workholding up test: all ok\n");
+                    }
+                    std::fflush(stdout);
+                    code = failed == 0 && saved && savedPicked ? 0 : 6;
+                    QApplication::exit(code);
+                });
             });
             QApplication::exec();
             return code;

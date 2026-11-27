@@ -7,6 +7,7 @@ ocam_add_executable(oxcam-fixture-gen
 
 set(fixtures block_pocket block_pocket_inch fillet_pocket hole_plate boss_plate shaft bored live millturn stud_bar wrapped bushing spool grooved tapered dome swarf vise_jaws vise_base
     vise_fixed_jaw vise_moving_jaw vise_assembly selfcentring_assembly selfcentring_extras
+    selfcentring_yup_assembly
     dovetail_assembly
     plate_assembly chuck_assembly collet_assembly wedge_hole)
 list(TRANSFORM fixtures PREPEND ${OCAM_FIXTURE_DIR}/)

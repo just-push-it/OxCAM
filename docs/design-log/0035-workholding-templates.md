@@ -190,6 +190,21 @@ table (`PartTable`, lifted from the machine editor), member jogging, and datums 
 edges and vertices in the preview, typed, offset or midway. New from STEP imports the file (every
 body a part) and goes straight into the wizard.
 
+**Up** (2026-11-26) is a direction in the parts' own (STEP model's) coordinates, not the
+machine's Z: a vise drawn Y-up in its CAD system has up Model +Y. A user who read "Up" as machine
+Z set +X on such a vise, which looked upright in the preview but held the stock on its side. So
+the field is called "Model axis pointing up", sits next to the wizard button rather than under
+Advanced, and the preview draws an arrow along it with the model's X, Y and Z triad at its
+origin. **Pick...** reuses the datum pick (exact B-rep, `pickedDatum`): a flat face gives its
+outward normal, a straight edge or round face its line (**Flip** reverses it). A picked direction
+within 3 degrees of a model axis is taken as that axis (`snapUp`, `kUpSnapDegrees`); further off,
+the user is asked whether to keep the exact direction (the template stores any unit vector) or
+take the nearest axis. The editor no longer turns a stored up that is off the axes into +Z on
+load: it shows it as its own entry. `upMismatch` compares up with each holding's seat datum
+(the jaw tops, a dovetail's or plate's seat, a chuck's jaw front, all pointing out of the fixture);
+more than 1 degree apart, the editor warns, with a one-click "Use the jaw tops' direction". The
+wizard's up already comes from the jaw-top datum (`buildWorkholding`), so its templates agree.
+
 ### Chucks and collets on the lathe
 
 A chuck holding (`HoldingKind::Chuck`, format version 3) grips a bar on its diameter, centred on
@@ -265,6 +280,11 @@ None.
   the stock held as by the bounding-box vise, a moving face on a fixed part refused), a
   self-centring vise whose jaws move together from one opening, a dovetail (and one with both
   flanks fixed: no range) and a seat.
+- **Up** (`[up]`): snapping to the model's axes (within 3 degrees, the nearest one beyond), up
+  from a face, an edge (flipped) and a vertex (none), a vise drawn Y-up
+  (`selfcentring_yup_assembly.step`) set up as +Y by the wizard and by a pick on its jaw tops, and
+  warned about when saved with +X. In the GUI (`gui.workholding_up`): the wizard's +Y, the
+  editor's warning and arrow for +X, the one-click fix and the pick.
 - **Chucks** (`[chuck]`): the wizard's 3-jaw chuck (three linked radial members, its range of
   diameters, every jaw closing by the same amount, the bar centred with the jaw front the grip
   length up, a typed grip length and opening, too large a bar, the gripping face on the body and
