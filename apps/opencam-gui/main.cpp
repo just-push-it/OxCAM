@@ -1683,6 +1683,12 @@ int main(int argc, char** argv) {
     if (parser.isSet(workholdingUpTest)) {
         namespace doc = ocam::document;
         using ocam::Vec3;
+        if (!parser.isSet(workholdingFolder) || !parser.isSet(workholdingStep)) {
+            // It empties the library folder: never the user's.
+            std::fprintf(stderr, "--workholding-up-test needs --workholding-folder and "
+                                 "--workholding-step\n");
+            return 2;
+        }
         try {
             ocam::CancelToken cancel;
             ocam::NullProgress progress;

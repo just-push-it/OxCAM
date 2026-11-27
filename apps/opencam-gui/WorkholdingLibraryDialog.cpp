@@ -1904,7 +1904,16 @@ void WorkholdingLibraryDialog::addHoldingRow(const StockHolding& h) {
             combo->addItem(qs(d.name), qs(d.name));
         }
         combo->setCurrentIndex(std::max(0, combo->findData(qs(value))));
-        connect(combo, &QComboBox::currentIndexChanged, this, &WorkholdingLibraryDialog::markDirty);
+        if (column == kSeat) {
+            // The up arrow starts at the seat and is coloured by whether up agrees with it.
+            connect(combo, &QComboBox::currentIndexChanged, this, [this] {
+                markDirty();
+                updatePreview();
+            });
+        } else {
+            connect(combo, &QComboBox::currentIndexChanged, this,
+                    &WorkholdingLibraryDialog::markDirty);
+        }
         holdings_->setCellWidget(r, column, combo);
     }
     holdings_->setItem(r, kGrip, numberItem(h.gripDepth));
