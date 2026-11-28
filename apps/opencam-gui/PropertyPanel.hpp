@@ -12,6 +12,7 @@
 #include <ocam/document/Workholding.hpp>
 #include <ocam/strategies/Common.hpp>
 
+#include <QPointer>
 #include <QScrollArea>
 #include <functional>
 #include <map>
@@ -21,6 +22,7 @@ class QFormLayout;
 class QVBoxLayout;
 class QPushButton;
 class QLabel;
+class QTabWidget;
 
 namespace ocam::gui {
 
@@ -131,6 +133,19 @@ private:
     QString jawEntryName(const document::WorkholdingTemplate& set, const std::string& option) const;
     QVBoxLayout* pageLayout_ = nullptr; ///< The page newForm made, for its sections.
     std::map<QString, bool> sectionOpen_;
+    /// Tabs under the rows of the page newForm made (its rows so far stay above them): the tabs
+    /// of addTab, each a page of its own that scrolls. The tab last chosen for `key` is shown
+    /// again (while the program runs), on this page and the next one with the same tabs.
+    void addTabs(const QString& key);
+    /// A tab of the page's tabs, `tip` on its name; a tab left without rows is not shown.
+    QFormLayout* addTab(const QString& key, const QString& title, const QString& tip);
+    /// Shows the tabs: drops the empty ones, chooses the one last chosen, and scrolls each as it
+    /// was when the page redraws for the same item. Returns rows below the tabs, always shown.
+    QFormLayout* finishTabs();
+    QPointer<QTabWidget> tabs_;            ///< The page's tabs (addTabs), if it has them.
+    QString tabsKey_;                      ///< The key of tabs_.
+    std::map<QString, QString> tabChosen_; ///< Tabs' key: the key of the tab last chosen.
+    std::map<QString, int> tabScroll_;     ///< Tab key: its scroll position, to restore.
     void buildProject();
     void buildModel(const document::ModelEntry& model);
     void buildTool(const tooling::Tool& tool);

@@ -272,7 +272,7 @@ if(OCAM_BUILD_TESTS)
     add_test(NAME gui.lathe_mill_panel_polar
         COMMAND oxcam-gui --settings-dir ${PROJECT_BINARY_DIR}/test-settings
                 --smoke-test ${OCAM_FIXTURE_DIR}/millturn_project.ocam --select-operation 8
-                --set-choice live_axes=polar
+                --panel-tab settings --set-choice live_axes=polar
                 --screenshot-window ${PROJECT_BINARY_DIR}/lathe_mill_panel_polar.png)
     # A slot wrapped around a turned diameter: part way, finished, and its page.
     add_test(NAME gui.lathe_wrap_part_way
@@ -314,7 +314,7 @@ if(OCAM_BUILD_TESTS)
     add_test(NAME gui.lathe_live_panel_spindle
         COMMAND oxcam-gui --settings-dir ${PROJECT_BINARY_DIR}/test-settings
                 --smoke-test ${OCAM_FIXTURE_DIR}/live_project.ocam --select-operation 3
-                --set-choice drive=spindle
+                --panel-tab settings --set-choice drive=spindle
                 --screenshot-window ${PROJECT_BINARY_DIR}/lathe_live_panel_spindle.png)
     add_test(NAME gui.lathe_setup_turret
         COMMAND oxcam-gui --settings-dir ${PROJECT_BINARY_DIR}/test-settings
@@ -324,7 +324,8 @@ if(OCAM_BUILD_TESTS)
         gui.lathe_live_panel gui.lathe_live_panel_spindle gui.lathe_setup_turret
         PROPERTIES LABELS gui TIMEOUT 300)
     # A contour's holding tabs: their settings are on its page only once Holding tabs is ticked,
-    # the count or the spacing as placed.
+    # the count or the spacing as placed. Redrawn for the change, the page stays on its
+    # Settings tab.
     add_test(NAME gui.contour_tabs_off
         COMMAND oxcam-gui --settings-dir ${PROJECT_BINARY_DIR}/test-settings
                 --smoke-test ${OCAM_FIXTURE_DIR}/sample_project.ocam --select-operation 2
@@ -333,7 +334,7 @@ if(OCAM_BUILD_TESTS)
     add_test(NAME gui.contour_tabs_on
         COMMAND oxcam-gui --settings-dir ${PROJECT_BINARY_DIR}/test-settings
                 --smoke-test ${OCAM_FIXTURE_DIR}/sample_project.ocam --select-operation 2
-                --set-flag tabs=on
+                --panel-tab settings --set-flag tabs=on
                 --expect-params tabs,tab_placement,tab_count,tab_width,tab_height,tab_shape
                 --expect-no-params tab_spacing)
     add_test(NAME gui.contour_tabs_by_spacing
@@ -583,8 +584,8 @@ if(OCAM_BUILD_TESTS)
                 --screenshot-post ${PROJECT_BINARY_DIR}/sample_project_post.png
                 --screenshot-post-settings ${PROJECT_BINARY_DIR}/sample_project_post_settings.png)
     set_tests_properties(gui.post PROPERTIES LABELS gui TIMEOUT 120)
-    # The Properties panel at every dock width: fields never squeezed by a long label, a page
-    # wider than the dock scrolls instead of being cut off.
+    # The Properties panel at every dock width, on each of its tabs: fields never squeezed by a
+    # long label, a page wider than the dock scrolls instead of being cut off.
     add_test(NAME gui.panel_widths
         COMMAND oxcam-gui --smoke-test ${OCAM_FIXTURE_DIR}/sample_project.ocam
                 --select-operation 1 --panel-sweep ${PROJECT_BINARY_DIR}/panel_sweep)

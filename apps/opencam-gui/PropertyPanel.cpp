@@ -42,13 +42,16 @@
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QScopeGuard>
+#include <QScrollBar>
 #include <QSpinBox>
 #include <QStandardItemModel>
+#include <QTabWidget>
 #include <QTextDocument>
 #include <QTimer>
 #include <QToolButton>
 #include <QVBoxLayout>
 #include <limits>
+#include <memory>
 #include <set>
 #include <utility>
 
@@ -438,6 +441,10 @@ void PropertyPanel::compactPage() {
                     delete item;
                 }
                 ++row; // past the field's own row
+            } else if (fieldItem) {
+                // A short label beside its field stays on one line: wrapped, it was cut off by
+                // its row (as high as the field), and the fields give way instead.
+                label->setWordWrap(false);
             }
         }
     }
@@ -515,7 +522,102 @@ QFormLayout* PropertyPanel::addSection(const QString& key, const QString& title,
     return form;
 }
 
+void PropertyPanel::addTabs(const QString& key) {
+    // The tabs take the page's height: no stretch below the rows above them.
+    if (QLayoutItem* stretch = pageLayout_->takeAt(pageLayout_->count() - 1)) {
+        delete stretch;
+    }
+    auto* tabs = new QTabWidget;
+    tabs->setObjectName(key + QStringLiteral("Tabs"));
+    tabs->setDocumentMode(true);
+    // Names in full, scrolled when the dock is too narrow for them all.
+    tabs->setElideMode(Qt::ElideNone);
+    tabs->setUsesScrollButtons(true);
+    pageLayout_->addWidget(tabs, 1);
+    tabs_ = tabs;
+    tabsKey_ = key;
+}
+
+QFormLayout* PropertyPanel::addTab(const QString& key, const QString& title, const QString& tip) {
+    auto* area = new QScrollArea;
+    area->setObjectName(QStringLiteral("tab_") + key);
+    area->setWidgetResizable(true);
+    area->setFrameShape(QFrame::NoFrame);
+    area->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    auto* page = new QWidget;
+    auto* layout = new QVBoxLayout(page);
+    auto* form = new QFormLayout;
+    form->setObjectName(QStringLiteral("tabForm"));
+    layout->addLayout(form);
+    layout->addStretch();
+    area->setWidget(page);
+    const int index = tabs_->addTab(area, title);
+    tabs_->setTabToolTip(index, tip);
+    return form;
+}
+
+QFormLayout* PropertyPanel::finishTabs() {
+    QTabWidget* tabs = tabs_;
+    for (int i = tabs->count() - 1; i >= 0; --i) {
+        QWidget* tab = tabs->widget(i);
+        const auto* form = tab->findChild<QFormLayout*>(QStringLiteral("tabForm"));
+        if (!form || form->rowCount() == 0) {
+            tabs->removeTab(i);
+            delete tab;
+        }
+    }
+    const auto chosen = tabChosen_.find(tabsKey_);
+    if (chosen != tabChosen_.end()) {
+        if (auto* tab = tabs->findChild<QWidget*>(QStringLiteral("tab_") + chosen->second)) {
+            tabs->setCurrentWidget(tab);
+        }
+    }
+    const QString key = tabsKey_;
+    connect(tabs, &QTabWidget::currentChanged, this, [this, key, tabs](int index) {
+        if (QWidget* tab = tabs->widget(index)) {
+            tabChosen_[key] = tab->objectName().mid(4); // after "tab_"
+        }
+    });
+    // Each tab scrolls back to where it was once its rows are laid out (a hidden tab's when it
+    // is first shown), unless it is scrolled before then.
+    for (int i = 0; i < tabs->count(); ++i) {
+        auto* area = qobject_cast<QScrollArea*>(tabs->widget(i));
+        const auto saved = area ? tabScroll_.find(area->objectName()) : tabScroll_.end();
+        if (saved == tabScroll_.end() || saved->second <= 0) {
+            continue;
+        }
+        QScrollBar* bar = area->verticalScrollBar();
+        const int target = saved->second;
+        auto restore = std::make_shared<QMetaObject::Connection>();
+        auto stop = std::make_shared<QMetaObject::Connection>();
+        *restore = connect(bar, &QScrollBar::rangeChanged, bar, [bar, target, restore, stop] {
+            bar->setValue(std::min(target, bar->maximum()));
+            if (bar->maximum() >= target) {
+                QObject::disconnect(*restore);
+                QObject::disconnect(*stop);
+            }
+        });
+        *stop = connect(bar, &QScrollBar::actionTriggered, bar, [restore, stop] {
+            QObject::disconnect(*restore);
+            QObject::disconnect(*stop);
+        });
+    }
+    tabScroll_.clear();
+    auto* below = new QFormLayout;
+    pageLayout_->addLayout(below);
+    return below;
+}
+
 void PropertyPanel::showSelection(const Selection& selection) {
+    // Redrawn for the same item (after an edit), its tabs keep their scroll positions.
+    tabScroll_.clear();
+    if (tabs_ && selection == selection_) {
+        for (int i = 0; i < tabs_->count(); ++i) {
+            if (auto* area = qobject_cast<QScrollArea*>(tabs_->widget(i))) {
+                tabScroll_[area->objectName()] = area->verticalScrollBar()->value();
+            }
+        }
+    }
     if (pending_ && !(selection == selection_)) {
         pending_.reset();
         emit pickPrompt(QString());
@@ -2371,8 +2473,6 @@ void PropertyPanel::buildHeights(QFormLayout* form, const document::Operation& o
     // Every height shows what it is measured from: a Default setting (files of earlier
     // versions) as the value it stands for.
     const document::OperationHeights effective = document::effectiveHeights(op);
-    auto* heading = new QLabel(tr("<b>Heights</b>"));
-    form->addRow(heading);
 
     auto label = [&](HeightRef ref) -> QString {
         switch (ref) {
@@ -2561,8 +2661,6 @@ void PropertyPanel::buildOrientation(QFormLayout* form, const document::Operatio
             }
         });
     };
-    form->addRow(new QLabel(tr("<b>Tool orientation</b>")));
-
     // The tool axis: the setup's WCS, or a direction of its own in the WCS (3+2).
     struct Direction {
         const char* label;
@@ -3515,6 +3613,28 @@ void PropertyPanel::buildOperation(const document::Operation& op, const Setup& s
     });
     form->addRow(QString(), enabled);
 
+    // The rest on tabs: what cuts and how fast, what is cut, the tool's axis, the heights and the
+    // strategy's own parameters.
+    addTabs(QStringLiteral("operation"));
+    // A transfer to the sub-spindle has no tool (ADR-0007).
+    const bool toolless = op.type == "spindle_transfer";
+    QFormLayout* cutting =
+        toolless ? addTab(QStringLiteral("cutting"), tr("Transfer"),
+                          tr("Where the sub-spindle takes the part"))
+                 : addTab(QStringLiteral("cutting"), tr("Cutting"),
+                          tr("The tool, its cutting preset, and the speeds and feeds this "
+                             "operation cuts at"));
+    QFormLayout* geometry = addTab(QStringLiteral("geometry"), tr("Geometry"),
+                                   tr("The faces and edges the operation cuts"));
+    QFormLayout* orientation =
+        addTab(QStringLiteral("orientation"), tr("Orientation"),
+               tr("The tool axis, its origin and work offset, and the rotary positions"));
+    QFormLayout* heights = addTab(QStringLiteral("heights"), tr("Heights"),
+                                  tr("Clearance, retract and feed heights, top and bottom"));
+    QFormLayout* settings = addTab(QStringLiteral("settings"), tr("Settings"),
+                                   tr("The strategy's own parameters, and the post's options "
+                                      "for the operation"));
+
     // The project's tools, then the tools of the user's libraries (default first); picking a
     // library tool copies it, with its holder, into the project.
     constexpr int kLibraryRole = Qt::UserRole + 1;
@@ -3604,12 +3724,10 @@ void PropertyPanel::buildOperation(const document::Operation& op, const Setup& s
                    }
                });
     });
-    // A transfer to the sub-spindle has no tool (ADR-0007).
-    const bool toolless = op.type == "spindle_transfer";
     if (toolless) {
         tool->deleteLater();
     } else {
-        form->addRow(tr("Tool"), tool);
+        cutting->addRow(tr("Tool"), tool);
     }
 
     auto* preset = new QComboBox;
@@ -3632,15 +3750,15 @@ void PropertyPanel::buildOperation(const document::Operation& op, const Setup& s
     });
     if (toolless) {
         preset->deleteLater();
-        buildTransferPickOff(form, op, setup);
+        buildTransferPickOff(cutting, op, setup);
     } else if (probingOperation) {
         delete preset; // never shown
     } else {
-        form->addRow(tr("Cutting preset"), preset);
+        cutting->addRow(tr("Cutting preset"), preset);
     }
     if (selectedTool && op.presetId && !probingOperation) {
         if (const auto* toolPreset = selectedTool->findPreset(*op.presetId)) {
-            buildPresetOverrides(form, op, *toolPreset, *selectedTool);
+            buildPresetOverrides(cutting, op, *toolPreset, *selectedTool);
         }
     }
 
@@ -3651,22 +3769,19 @@ void PropertyPanel::buildOperation(const document::Operation& op, const Setup& s
     const bool liveTool = onLathe && document::liveDrive(op);
     if (info && info->geometry != strategies::GeometryUse::None &&
         !(document::isHoleOperation(op.type) && onLathe && !liveTool)) {
-        buildGeometry(form, op, info->geometry, setup);
+        buildGeometry(geometry, op, info->geometry, setup);
     }
     if (op.type == "contour2d" || op.type == "trace2d") {
-        buildStartPoint(form, op);
+        buildStartPoint(geometry, op);
     }
     if (!onLathe || liveTool) {
-        buildOrientation(form, op, setup);
+        buildOrientation(orientation, op, setup);
     }
-    buildHeights(form, op, setup);
-    buildPostOptions(form, op, setup);
+    buildHeights(heights, op, setup);
 
     // Strategy parameters, generated from the strategy's parameter descriptors: those that
     // matter with the others' values (a ramp angle only for ramp entries, say).
     if (info) {
-        auto* heading = new QLabel(tr("<b>%1 parameters</b>").arg(trStrategy(info->label)));
-        form->addRow(heading);
         for (const strategies::ParamDef& def : info->params) {
             if (!info->applies(def, op.parameters)) {
                 continue;
@@ -3683,10 +3798,13 @@ void PropertyPanel::buildOperation(const document::Operation& op, const Setup& s
                 },
                 selectedTool);
             editor->setObjectName(QStringLiteral("param_") + QString::fromStdString(key));
-            form->addRow(trStrategy(def.label), editor);
+            settings->addRow(trStrategy(def.label), editor);
         }
     }
+    buildPostOptions(settings, op, setup);
 
+    // The toolpath's state under the tabs, whichever is shown.
+    form = finishTabs();
     statusLabel_ = new QLabel;
     statusLabel_->setObjectName(QStringLiteral("toolpathStatus"));
     statusLabel_->setWordWrap(true);
